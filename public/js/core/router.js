@@ -2,6 +2,7 @@
 import { initDashboard } from '../controllers/dashboard.controller.js';
 import { initSettings } from '../controllers/settings.controller.js';
 import { initHomeHub } from '../controllers/home-hub.controller.js';
+import { init360Home } from '../controllers/360-home.controller.js';
 import { showToast } from '../ui/toast.js';
 
 // Mapeo de rutas a sus controladores correspondientes
@@ -9,7 +10,7 @@ const viewControllers = {
     '/views/dashboard.html': initDashboard,
     '/views/settings.html': initSettings,
     '/views/home-hub.html': initHomeHub,
-    '/views/360-home.html': init360-home,
+    '/views/360Home.html': init360Home,
     '/views/zones.html': initZones,
     '/views/family-board.html': initFamilyBoard,
     '/views/finance.html': initFinance,
@@ -22,7 +23,7 @@ const PRIVATE_VIEWS = [
     '/views/dashboard.html', 
     '/views/settings.html',
     '/views/home-hub.html',
-    '/views/360-home.html',
+    '/views/360Home.html',
     '/views/zones.html',
     '/views/family-board.html',
     '/views/finance.html',
