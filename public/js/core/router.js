@@ -1,19 +1,27 @@
 // public/js/core/router.js
 import { initDashboard } from '../controllers/dashboard.controller.js';
 import { initSettings } from '../controllers/settings.controller.js';
+import { initHomeHub } from '../controllers/home-hub.controller.js';
 import { showToast } from '../ui/toast.js';
 
 // Mapeo de rutas a sus controladores correspondientes
 const viewControllers = {
     '/views/dashboard.html': initDashboard,
     '/views/settings.html': initSettings,
-    // Las demás vistas (360-home, zones, etc.) por ahora solo cargan el HTML sin controlador
+    '/views/home-hub.html': initHomeHub,
+    '/views/360-home.html': init360-home,
+    '/views/zones.html': initZones,
+    '/views/family-board.html': initFamilyBoard,
+    '/views/finance.html': initFinance,
+    '/views/inventory.html': initInventory,
+    '/views/habits.html': initHabits
 };
 
 // Vistas que deben ocultar el header público principal
 const PRIVATE_VIEWS = [
     '/views/dashboard.html', 
     '/views/settings.html',
+    '/views/home-hub.html',
     '/views/360-home.html',
     '/views/zones.html',
     '/views/family-board.html',

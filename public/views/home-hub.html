@@ -1,0 +1,163 @@
+<!-- public/views/home-hub.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera del Módulo -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Núcleo 360 Home</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;"> telemetría doméstica, alertas consolidadas y utilidades diarias</p>
+      </div>
+    </div>
+
+    <!-- Reloj y Clima en Tiempo Real -->
+    <div style="display: flex; align-items: center; gap: 1rem; background: var(--panel-bg); padding: 0.6rem 1.2rem; border-radius: 16px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+      <div style="text-align: right; padding-right: 1rem; border-right: 1px solid var(--border-card);">
+        <div id="hubClock" style="font-size: 1.25rem; font-weight: 800; color: var(--primary-neon); line-height: 1.1;">--:--:--</div>
+        <div id="hubDate" style="font-size: 0.75rem; color: var(--text-muted);">Sincronizando...</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary-neon)" stroke-width="2">
+          <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+        </svg>
+        <div>
+          <div id="hubTemp" style="font-size: 1.1rem; font-weight: 700; line-height: 1.1;">24°C</div>
+          <div id="hubWeatherDesc" style="font-size: 0.75rem; color: var(--text-muted);">Clima local</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fila 1: KPIs Consolidados de la Base de Datos -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 2rem;">
+    
+    <div class="module-card encrypted-route" data-target="/views/finance.html" style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">Balance del Mes</span>
+        <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+      </div>
+      <h2 id="kpiBalance" style="font-size: 1.7rem; font-weight: 800; margin-bottom: 0.2rem;">$0.00</h2>
+      <span id="kpiFinanceSub" style="font-size: 0.78rem; color: var(--text-muted);">Sin movimientos registrados</span>
+    </div>
+
+    <div class="module-card encrypted-route" data-target="/views/zones.html" style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">Tareas del Hogar</span>
+        <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg></div>
+      </div>
+      <h2 id="kpiPendingTasks" style="font-size: 1.7rem; font-weight: 800; margin-bottom: 0.2rem;">0</h2>
+      <span id="kpiZonesSub" style="font-size: 0.78rem; color: var(--text-muted);">Mantenimientos pendientes</span>
+    </div>
+
+    <div class="module-card encrypted-route" data-target="/views/inventory.html" style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">Alertas de Despensa</span>
+        <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line></svg></div>
+      </div>
+      <h2 id="kpiLowStock" style="font-size: 1.7rem; font-weight: 800; margin-bottom: 0.2rem;">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Artículos por agotar / comprar</span>
+    </div>
+
+    <div class="module-card encrypted-route" data-target="/views/habits.html" style="padding: 1.4rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <span style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">Hábitos Activos</span>
+        <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+      </div>
+      <h2 id="kpiHabitsCount" style="font-size: 1.7rem; font-weight: 800; margin-bottom: 0.2rem;">0</h2>
+      <span id="kpiHabitsSub" style="font-size: 0.78rem; color: var(--text-muted);">Rutinas configuradas</span>
+    </div>
+
+  </div>
+
+  <!-- Fila 2: Centro de Control (Agenda/Alertas + Herramientas Integradas) -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.8rem;">
+    
+    <!-- Columna Izquierda: Alertas Consolidadas y Acción Rápida -->
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 24px; padding: 2rem; box-shadow: var(--shadow-base);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem;">
+        <h3 style="font-size: 1.25rem; font-weight: 700;">Agenda y Alertas del Nodo</h3>
+        <span class="version-badge" style="margin: 0; font-size: 0.75rem;">Tiempo Real</span>
+      </div>
+
+      <!-- Formulario de Inyección Rápida al Tablero/Agenda -->
+      <form id="quickAlertForm" style="display: flex; gap: 8px; margin-bottom: 1.5rem;">
+        <input type="text" id="quickAlertInput" class="form-input" placeholder="Añadir nota o recordatorio rápido..." required style="padding: 0.7rem 1rem;">
+        <select id="quickAlertType" class="form-input" style="width: 115px; padding: 0.7rem 0.5rem; cursor: pointer;">
+          <option value="alerta">Alerta</option>
+          <option value="nota">Nota</option>
+          <option value="evento">Evento</option>
+        </select>
+        <button type="submit" class="btn-save" style="margin: 0; padding: 0 1.2rem;" title="Guardar en Tablero">
+          +
+        </button>
+      </form>
+
+      <!-- Lista Dinámica de Alertas, Tareas Pendientes y Notas -->
+      <div id="hubFeedList" style="display: flex; flex-direction: column; gap: 0.8rem; max-height: 360px; overflow-y: auto;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Sincronizando registros con Supabase...</p>
+      </div>
+    </div>
+
+    <!-- Columna Derecha: Calculadora Rápida y Reproductor Ambiental Focus -->
+    <div style="display: flex; flex-direction: column; gap: 1.8rem;">
+      
+      <!-- Generador Acústico / Reproductor de Enfoque -->
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 24px; padding: 1.8rem; box-shadow: var(--shadow-base);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem;">Frecuencia Ambiental NGN</h3>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sintetizador WebAudio para concentración y lectura</p>
+          </div>
+          <button type="button" id="btnToggleAudio" class="btn-save" style="margin: 0; padding: 0.6rem 1.2rem; font-size: 0.85rem;">
+            Activar Audio
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 1rem;">
+          <button type="button" class="btn-outline audio-preset active" data-mode="brown" style="border-color: var(--primary-neon); color: var(--primary-neon);">Ruido Marrón (Profundo)</button>
+          <button type="button" class="btn-outline audio-preset" data-mode="rain">Lluvia Suave</button>
+          <button type="button" class="btn-outline audio-preset" data-mode="binaural">Binaural 432Hz</button>
+          <input type="range" id="audioVolume" min="0.01" max="0.5" step="0.01" value="0.15" style="margin-left: auto; accent-color: var(--primary-neon); cursor: pointer;" title="Volumen">
+        </div>
+      </div>
+
+      <!-- Calculadora Doméstica Integrada -->
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 24px; padding: 1.8rem; box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem;">Calculadora Rápida de Presupuesto</h3>
+        <input type="text" id="calcDisplay" class="form-input" readonly value="0" style="text-align: right; font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; font-family: monospace;">
+        <div id="calcKeys" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;">
+          <button type="button" class="btn-outline" data-key="C" style="justify-content:center; padding:10px; color:var(--danger-color);">C</button>
+          <button type="button" class="btn-outline" data-key="(" style="justify-content:center; padding:10px;">(</button>
+          <button type="button" class="btn-outline" data-key=")" style="justify-content:center; padding:10px;">)</button>
+          <button type="button" class="btn-outline" data-key="/" style="justify-content:center; padding:10px; color:var(--primary-neon);">÷</button>
+
+          <button type="button" class="btn-outline" data-key="7" style="justify-content:center; padding:10px;">7</button>
+          <button type="button" class="btn-outline" data-key="8" style="justify-content:center; padding:10px;">8</button>
+          <button type="button" class="btn-outline" data-key="9" style="justify-content:center; padding:10px;">9</button>
+          <button type="button" class="btn-outline" data-key="*" style="justify-content:center; padding:10px; color:var(--primary-neon);">×</button>
+
+          <button type="button" class="btn-outline" data-key="4" style="justify-content:center; padding:10px;">4</button>
+          <button type="button" class="btn-outline" data-key="5" style="justify-content:center; padding:10px;">5</button>
+          <button type="button" class="btn-outline" data-key="6" style="justify-content:center; padding:10px;">6</button>
+          <button type="button" class="btn-outline" data-key="-" style="justify-content:center; padding:10px; color:var(--primary-neon);">−</button>
+
+          <button type="button" class="btn-outline" data-key="1" style="justify-content:center; padding:10px;">1</button>
+          <button type="button" class="btn-outline" data-key="2" style="justify-content:center; padding:10px;">2</button>
+          <button type="button" class="btn-outline" data-key="3" style="justify-content:center; padding:10px;">3</button>
+          <button type="button" class="btn-outline" data-key="+" style="justify-content:center; padding:10px; color:var(--primary-neon);">+</button>
+
+          <button type="button" class="btn-outline" data-key="0" style="grid-column: span 2; justify-content:center; padding:10px;">0</button>
+          <button type="button" class="btn-outline" data-key="." style="justify-content:center; padding:10px;">.</button>
+          <button type="button" class="btn-save" data-key="=" style="margin:0; justify-content:center; padding:10px;">=</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
