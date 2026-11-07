@@ -1,36 +1,128 @@
 // public/js/core/router.js
 import { initDashboard } from '../controllers/dashboard.controller.js';
 import { initSettings } from '../controllers/settings.controller.js';
+import { showToast } from '../ui/toast.js';
 
+// Mapeo de rutas a sus controladores correspondientes
 const viewControllers = {
-  '/views/dashboard.html': initDashboard,
-  '/views/settings.html': initSettings,
+    '/views/dashboard.html': initDashboard,
+    '/views/settings.html': initSettings,
+    // Las demás vistas (360-home, zones, etc.) por ahora solo cargan el HTML sin controlador
 };
 
-export async function loadNode(encodedString) {
-  const mainContent = document.getElementById('main-content');
-  const dynamicView = document.getElementById('dynamic-view');
+// Vistas que deben ocultar el header público principal
+const PRIVATE_VIEWS = [
+    '/views/dashboard.html', 
+    '/views/settings.html',
+    '/views/360-home.html',
+    '/views/zones.html',
+    '/views/family-board.html',
+    '/views/finance.html',
+    '/views/inventory.html',
+    '/views/habits.html'
+];
 
-  try {
-    const decodedPath = atob(encodedString);
-    const fetchPath = decodedPath.startsWith('/') ? decodedPath : `/${decodedPath}`;
+export async function navigateTo(targetPath, pushHistory = true) {
+    const mainContent = document.getElementById('main-content');
+    const dynamicView = document.getElementById('dynamic-view');
+    const mainHeader = document.getElementById('mainHeader');
 
-    const response = await fetch(fetchPath);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    dynamicView.innerHTML = await response.text();
-    mainContent.style.display = 'none';
-    dynamicView.style.display = 'block';
-    window.scrollTo(0, 0);
-
-    // Si la vista tiene un controlador asociado, lo ejecutamos limpiamente
-    if (viewControllers[fetchPath]) {
-      await viewControllers[fetchPath]();
+    // Si la ruta es la raíz "/", mostramos el contenido principal (Landing Page)
+    if (!targetPath || targetPath === '/') {
+        dynamicView.style.display = 'none';
+        dynamicView.innerHTML = '';
+        mainContent.style.display = 'block';
+        if (mainHeader) mainHeader.style.display = 'flex';
+        if (pushHistory) history.pushState(null, '', '/');
+        window.scrollTo(0, 0);
+        return;
     }
-  } catch (error) {
-    console.error('Error del enrutador:', error);
-    mainContent.style.display = 'block';
-    dynamicView.style.display = 'none';
-    history.pushState(null, '', '/');
-  }
+
+    try {
+        // Asegurar que la ruta comience con '/'
+        const cleanPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
+        
+        // Cargar el HTML de la vista
+        const response = await fetch(cleanPath);
+        if (!response.ok) throw new Error(`Vista no encontrada: ${cleanPath}`);
+
+        dynamicView.innerHTML = await response.text();
+        mainContent.style.display = 'none';
+        dynamicView.style.display = 'block';
+
+        // Ocultar header público en paneles privados y ajustar el padding superior
+        if (mainHeader) {
+            const isPrivate = PRIVATE_VIEWS.includes(cleanPath);
+            mainHeader.style.display = isPrivate ? 'none' : 'flex';
+            dynamicView.style.paddingTop = isPrivate ? '0' : '80px';
+        }
+
+        // Actualizar la URL con Base64 si es necesario
+        if (pushHistory) {
+            const encoded = btoa(cleanPath);
+            history.pushState({ path: cleanPath }, '', `?node=${encoded}`);
+        }
+
+        window.scrollTo(0, 0);
+
+        // Si la vista tiene un controlador asociado (ej: Dashboard o Settings), ejecutarlo
+        if (viewControllers[cleanPath]) {
+            await viewControllers[cleanPath]();
+        }
+    } catch (error) {
+        console.error('Error en router:', error);
+        showToast('El módulo solicitado aún no está disponible', 'error');
+        navigateTo('/', true);
+    }
+}
+
+export function initRouter() {
+    // Delegación global de eventos para cualquier enlace con la clase .encrypted-route
+    document.body.addEventListener('click', (e) => {
+        const routeEl = e.target.closest('.encrypted-route');
+        if (routeEl) {
+            e.preventDefault();
+            const target = routeEl.getAttribute('data-target');
+            if (target) navigateTo(target);
+        }
+    });
+
+    // Logo principal vuelve al inicio sin recargar la página
+    const brandLogo = document.getElementById('brandLogo');
+    if (brandLogo) {
+        brandLogo.addEventListener('click', (e) => {
+            e.preventDefault();
+            navigateTo('/');
+        });
+    }
+
+    // Soporte para los botones Atrás / Adelante del navegador
+    window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.path) {
+            navigateTo(e.state.path, false);
+        } else {
+            const params = new URLSearchParams(window.location.search);
+            const node = params.get('node');
+            if (node) {
+                try {
+                    navigateTo(atob(node), false);
+                } catch {
+                    navigateTo('/', false);
+                }
+            } else {
+                navigateTo('/', false);
+            }
+        }
+    });
+
+    // Carga inicial si la URL ya trae un parámetro ?node=...
+    const params = new URLSearchParams(window.location.search);
+    const initialNode = params.get('node');
+    if (initialNode) {
+        try {
+            navigateTo(atob(initialNode), false);
+        } catch {
+            navigateTo('/', false);
+        }
+    }
 }
