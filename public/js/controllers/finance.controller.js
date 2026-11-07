@@ -1,4 +1,3 @@
-export async function initFinance() { console.log("Finanzas cargadas"); }// public/js/controllers/finance.controller.js
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
