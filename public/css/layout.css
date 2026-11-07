@@ -1,0 +1,255 @@
+/* =========================================================
+   public/css/layout.css
+   Estructura de Navegación, Contenedores SPA y Footer
+   ========================================================= */
+
+/* =========================================
+   1. HEADER PÚBLICO Y NAVEGACIÓN
+   ========================================= */
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.85rem 5%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 1000;
+    border-bottom: 1px solid var(--border-light);
+    transition: var(--transition-smooth);
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.ngn-logo-svg {
+    width: 28px;
+    height: 28px;
+    animation: spinNexus 15s linear infinite;
+}
+
+@keyframes spinNexus {
+    100% { transform: rotate(360deg); }
+}
+
+.logo-text {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--text-main);
+}
+
+.logo-text span {
+    color: var(--primary-neon);
+}
+
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+nav {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+}
+
+nav a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: var(--transition-smooth);
+    cursor: pointer;
+}
+
+nav a:hover,
+nav a.active {
+    color: var(--primary-neon);
+}
+
+/* Buscador expandible en lupa */
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.search-icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+}
+
+.search-icon-btn:hover {
+    color: var(--primary-neon);
+}
+
+.search-input {
+    width: 0;
+    opacity: 0;
+    padding: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.search-wrapper.active .search-input {
+    width: 180px;
+    opacity: 1;
+    padding: 6px 12px;
+    margin-left: 8px;
+    background: var(--panel-bg);
+    border: 1px solid var(--primary-neon);
+    border-radius: 20px;
+}
+
+/* =========================================
+   2. CONTENEDOR DE VISTAS DINÁMICAS (SPA)
+   ========================================= */
+#dynamic-view {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    padding-top: 80px;
+}
+
+/* =========================================
+   3. NAVBAR PRIVADA DEL DASHBOARD
+   ========================================= */
+.dash-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 5%;
+    margin-bottom: 3rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.dash-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.dash-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.dash-user-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 1.5rem;
+    border-right: 1px solid var(--border-card);
+}
+
+.dash-avatar-mini {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-color);
+    border: 2px solid var(--primary-neon);
+    padding: 2px;
+    object-fit: cover;
+}
+
+.dash-user-info-mini h2 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0;
+}
+
+.dash-user-info-mini p {
+    color: var(--primary-neon);
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--primary-neon);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--primary-neon);
+}
+
+/* =========================================
+   4. FOOTER
+   ========================================= */
+footer {
+    text-align: center;
+    padding: 3rem 5%;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+/* =========================================
+   5. RESPONSIVIDAD DE LAYOUT
+   ========================================= */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        padding: 1rem;
+        gap: 1rem;
+    }
+    .nav-right {
+        width: 100%;
+        flex-direction: column;
+        gap: 1rem;
+    }
+    nav {
+        width: 100%;
+        justify-content: center;
+    }
+    .search-wrapper.active .search-input {
+        width: 100%;
+    }
+    .dash-navbar {
+        flex-direction: column;
+        gap: 1.5rem;
+        padding: 1.5rem;
+    }
+    .dash-nav-actions {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+    }
+    .dash-user-mini {
+        border-right: none;
+        padding-right: 0;
+    }
+}

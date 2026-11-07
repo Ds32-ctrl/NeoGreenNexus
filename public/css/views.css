@@ -1,0 +1,669 @@
+/* =========================================================
+   public/css/views.css
+   Estilos Específicos de Vistas (Landing, Dashboard, Settings)
+   ========================================================= */
+
+/* =========================================
+   1. VISTA PRINCIPAL: HERO SECTION
+   ========================================= */
+.hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 5% 0;
+    position: relative;
+}
+
+.hero-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    max-width: 1200px;
+    width: 100%;
+    align-items: center;
+}
+
+.hero-text-content {
+    text-align: left;
+}
+
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: var(--icon-bg);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-neon);
+    margin-bottom: 1.5rem;
+    letter-spacing: 0.5px;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--primary-neon);
+    border-radius: 50%;
+    animation: pulse-neon 2s infinite;
+}
+
+@keyframes pulse-neon {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.hero-text-content h1 {
+    font-size: clamp(2.5rem, 4.5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    color: var(--text-main);
+    letter-spacing: -1px;
+}
+
+.hero-text-content h1 span {
+    color: var(--primary-neon);
+}
+
+.hero-text-content p {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    max-width: 500px;
+    margin-bottom: 2.5rem;
+    line-height: 1.7;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Zona Visual del Hero */
+.hero-visuals {
+    position: relative;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.widget-finance {
+    top: 10%;
+    right: 5%;
+    width: 240px;
+    animation: floatWidget 6s ease-in-out infinite;
+    z-index: 2;
+}
+
+.widget-finance .widget-body {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 80px;
+}
+
+.bar {
+    flex: 1;
+    background: var(--border-card);
+    border-radius: 4px 4px 0 0;
+    transition: var(--transition-smooth);
+}
+
+.b1 { height: 40%; }
+.b2 { height: 70%; }
+.b3 { height: 50%; }
+.b4 { height: 90%; background: var(--primary-neon); }
+
+body.dark-mode .b4 {
+    background: var(--primary-neon);
+    box-shadow: 0 0 15px var(--primary-neon);
+}
+
+.widget-habits {
+    bottom: 10%;
+    left: 0;
+    width: 240px;
+    animation: floatWidget 7s ease-in-out infinite reverse;
+    z-index: 1;
+}
+
+.habits-grid {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    height: 40px;
+    align-items: center;
+}
+
+.habit-day {
+    height: 24px;
+    flex: 1;
+    border-radius: 4px;
+    background: var(--border-card);
+    transition: var(--transition-smooth);
+}
+
+.habit-day.active {
+    height: 32px;
+    background: var(--primary-neon);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+.widget-habits .widget-footer {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    text-align: right;
+}
+
+body.dark-mode .habit-day {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+body.dark-mode .habit-day.active {
+    background: var(--primary-neon);
+    box-shadow: 0 0 15px var(--primary-neon);
+}
+
+@keyframes floatWidget {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-15px); }
+    100% { transform: translateY(0px); }
+}
+
+.scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-muted);
+    animation: bounce 2s infinite;
+    display: block;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.scroll-indicator:hover {
+    color: var(--primary-neon);
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0) translateX(-50%); }
+    40% { transform: translateY(-10px) translateX(-50%); }
+    60% { transform: translateY(-5px) translateX(-50%); }
+}
+
+/* =========================================
+   2. BANNER CARRUSEL (SLIDER)
+   ========================================= */
+.banner-section {
+    padding: 40px 5%;
+    display: flex;
+    justify-content: center;
+}
+
+.slider-wrapper {
+    width: 100%;
+    max-width: 1100px;
+    background: var(--panel-bg);
+    border-radius: 24px;
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-base);
+    overflow: hidden;
+    position: relative;
+    transition: var(--transition-smooth);
+}
+
+body.dark-mode .slider-wrapper {
+    border-color: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+
+.slider-track {
+    display: flex;
+    width: 300%;
+    transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.slide {
+    width: 33.333%;
+    padding: 60px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.slide-content h3 {
+    font-size: 2rem;
+    color: var(--text-main);
+    margin-bottom: 15px;
+    font-weight: 800;
+}
+
+.slide-content p {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--border-card);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.dot.active {
+    background: var(--primary-neon);
+    transform: scale(1.3);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+/* =========================================
+   3. SECCIÓN CARACTERÍSTICAS Y ECOSISTEMA
+   ========================================= */
+.features {
+    padding: 80px 5%;
+    background-color: var(--panel-bg);
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+    transition: background-color 0.5s ease;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 3rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.feature-item {
+    text-align: left;
+}
+
+.feature-icon {
+    width: 48px;
+    height: 48px;
+    background: var(--icon-bg);
+    color: var(--primary-neon);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    transition: var(--transition-smooth);
+}
+
+.feature-item:hover .feature-icon {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.feature-item h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.feature-item p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.ecosystem {
+    padding: 100px 5%;
+}
+
+.ecosystem-title {
+    text-align: center;
+    font-size: 2.2rem;
+    margin-bottom: 3rem;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+/* =========================================
+   4. VISTA: DASHBOARD DE USUARIO
+   ========================================= */
+.dashboard-wrapper {
+    padding: 0 5% 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--text-main);
+    animation: fadeIn 0.4s ease-out;
+}
+
+.module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+/* =========================================
+   5. VISTA: PANEL DE AJUSTES (SETTINGS)
+   ========================================= */
+.settings-wrapper {
+    padding: 0 5% 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--text-main);
+    animation: fadeIn 0.4s ease-out;
+}
+
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-top: 1rem;
+}
+
+.settings-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.settings-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-card);
+    border-radius: 24px;
+    min-height: 600px;
+    box-shadow: var(--shadow-base);
+    overflow: hidden;
+}
+
+.settings-sidebar {
+    background: var(--bg-color);
+    border-right: 1px solid var(--border-card);
+    padding: 2rem 1.5rem;
+}
+
+.tab-btn {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    padding: 1rem 1.2rem;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 0.5rem;
+}
+
+.tab-btn:hover {
+    background: var(--border-card);
+    color: var(--text-main);
+}
+
+.tab-btn.active {
+    background: var(--icon-bg);
+    color: var(--primary-neon);
+}
+
+.settings-content {
+    padding: 3rem;
+    position: relative;
+}
+
+.tab-pane {
+    display: none;
+    animation: slideInRight 0.3s ease-out forwards;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
+.pane-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.pane-subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 2.5rem;
+}
+
+.avatar-selection-area {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+}
+
+.live-avatar-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-neon);
+    background: var(--bg-color);
+    padding: 4px;
+    box-shadow: 0 0 15px var(--icon-bg);
+    transition: var(--transition-smooth);
+    object-fit: cover;
+}
+
+.avatar-grid-wrapper {
+    flex: 1;
+    max-width: 400px;
+}
+
+.avatar-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+    max-height: 65px;
+    overflow: hidden;
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-grid.expanded {
+    max-height: 500px;
+}
+
+.avatar-choice {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+    background: var(--border-light);
+    object-fit: cover;
+}
+
+.avatar-choice:hover,
+.avatar-choice.selected {
+    transform: scale(1.1);
+}
+
+.avatar-choice.selected {
+    border-color: var(--primary-neon);
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.theme-card {
+    background: var(--bg-color);
+    border: 2px solid var(--border-card);
+    border-radius: 16px;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.theme-card.active {
+    border-color: var(--primary-neon);
+    box-shadow: 0 5px 15px var(--icon-bg);
+}
+
+.theme-color-preview {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin: 0 auto 10px;
+    box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.2);
+}
+
+.theme-card h4 {
+    font-size: 0.9rem;
+    margin: 0;
+    color: var(--text-main);
+}
+
+.theme-card p {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem;
+    background: var(--bg-color);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    margin-bottom: 1rem;
+}
+
+.setting-info h4 {
+    margin: 0 0 4px 0;
+    font-size: 1rem;
+}
+
+.setting-info p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* =========================================
+   6. VISTAS COMERCIALES (360 HOME / NEXUS CORE)
+   ========================================= */
+.product-showcase {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 80px);
+    text-align: center;
+    padding: 2rem 5%;
+    position: relative;
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* =========================================
+   7. MEDIA QUERIES DE VISTAS
+   ========================================= */
+@media (max-width: 992px) {
+    .hero-container {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 2rem;
+    }
+    .hero-text-content {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .hero-text-content p {
+        margin: 0 auto 2.5rem;
+    }
+    .hero-buttons {
+        justify-content: center;
+    }
+    .hero-visuals {
+        height: 350px;
+    }
+    .widget-finance {
+        right: 0;
+    }
+    .widget-habits {
+        left: 10%;
+    }
+}
+
+@media (max-width: 900px) {
+    .settings-container {
+        grid-template-columns: 1fr;
+    }
+    .settings-sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--border-card);
+        display: flex;
+        overflow-x: auto;
+        padding: 1rem;
+    }
+    .tab-btn {
+        flex-shrink: 0;
+        width: auto;
+        margin-bottom: 0;
+        margin-right: 10px;
+    }
+    .settings-content {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero {
+        padding-top: 150px;
+    }
+    .slide {
+        padding: 40px 20px;
+    }
+    .slide-content h3 {
+        font-size: 1.5rem;
+    }
+}

@@ -1,0 +1,119 @@
+/* =========================================================
+   public/css/tokens.css
+   Variables Globales (Design Tokens), Reset y Fondo Dinámico
+   ========================================================= */
+
+:root {
+    /* Paleta Base - Modo Claro */
+    --bg-color: #f8fafc;
+    --panel-bg: #ffffff;
+    --primary-neon: #10b981;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+    --border-light: #f1f5f9;
+    --border-card: #e2e8f0;
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --icon-bg: rgba(16, 185, 129, 0.1);
+    
+    /* Sombras y Gradientes */
+    --shadow-base: 0 4px 15px rgba(0, 0, 0, 0.05);
+    --shadow-hover: 0 10px 30px rgba(0, 0, 0, 0.04);
+    --bg-gradient-1: rgba(16, 185, 129, 0.08);
+    --bg-gradient-2: rgba(14, 165, 233, 0.05);
+    
+    /* Estados Semánticos */
+    --danger-color: #ef4444;
+    --warning-color: #f59e0b;
+    --info-color: #0ea5e9;
+
+    /* Transiciones */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.dark-mode {
+    /* Paleta Base - Modo Oscuro */
+    --bg-color: #0f172a;
+    --panel-bg: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-light: #1e293b;
+    --border-card: #334155;
+    --glass-bg: rgba(15, 23, 42, 0.82);
+    --icon-bg: rgba(16, 185, 129, 0.15);
+    
+    /* Sombras y Gradientes Oscuros */
+    --shadow-base: 0 4px 15px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 10px 30px rgba(16, 185, 129, 0.15);
+    --bg-gradient-1: rgba(16, 185, 129, 0.15);
+    --bg-gradient-2: rgba(14, 165, 233, 0.1);
+}
+
+/* =========================================
+   RESET Y BASE GLOBAL
+   ========================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    scroll-behavior: smooth;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+    overflow-x: hidden;
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* =========================================
+   PATRÓN DE FONDO Y ANIMACIONES GLOBALES
+   ========================================= */
+.bg-pattern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background-image: 
+        radial-gradient(at 0% 0%, var(--bg-gradient-1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, var(--bg-gradient-2) 0px, transparent 50%);
+    transition: opacity 0.5s ease;
+    animation: floatBackgroundLight 20s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+
+body.dark-mode .bg-pattern {
+    animation: pulseBackgroundDark 15s ease-in-out infinite alternate;
+}
+
+@keyframes floatBackgroundLight {
+    0% { transform: scale(1) translate(0, 0); }
+    100% { transform: scale(1.05) translate(2%, 2%); }
+}
+
+@keyframes pulseBackgroundDark {
+    0% { opacity: 0.7; transform: scale(1); }
+    100% { opacity: 1; transform: scale(1.02); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInRight {
+    from { opacity: 0; transform: translateX(15px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Utilidades de Scrollbar */
+.hide-scroll::-webkit-scrollbar { display: none; }
+.hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+.avatar-scroll::-webkit-scrollbar { height: 4px; }
+.avatar-scroll::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 10px; }
+.avatar-scroll::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 10px; }
+.avatar-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary-neon); }

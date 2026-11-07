@@ -1,0 +1,639 @@
+/* =========================================================
+   public/css/components.css
+   Botones, Tarjetas, Widgets, Modales, Inputs, Toggles y Toasts
+   ========================================================= */
+
+/* =========================================
+   1. BOTONES
+   ========================================= */
+.btn {
+    padding: 0.9rem 2rem;
+    border-radius: 14px;
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: var(--text-main);
+    color: var(--bg-color);
+    box-shadow: var(--shadow-base);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-neon);
+    color: #fff;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+}
+
+.btn-text {
+    color: var(--text-muted);
+    font-weight: 600;
+    text-decoration: none;
+    position: relative;
+    padding: 0.9rem 0;
+}
+
+.btn-text::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 0;
+    width: 0%;
+    height: 2px;
+    background: var(--primary-neon);
+    transition: var(--transition-smooth);
+}
+
+.btn-text:hover {
+    color: var(--text-main);
+}
+
+.btn-text:hover::after {
+    width: 100%;
+}
+
+.btn-login-header {
+    background: transparent;
+    border: 1px solid var(--primary-neon);
+    color: var(--primary-neon);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+}
+
+.btn-login-header:hover {
+    background: var(--primary-neon);
+    color: #000;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.btn-download {
+    width: 100%;
+    text-align: center;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    border: 1px solid var(--border-card);
+    padding: 0.8rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition-smooth);
+    cursor: pointer;
+}
+
+.btn-download:hover {
+    background-color: var(--primary-neon);
+    color: #fff;
+    border-color: var(--primary-neon);
+}
+
+.btn-back {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-card);
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-base);
+}
+
+.btn-back:hover {
+    color: var(--primary-neon);
+    border-color: var(--primary-neon);
+    transform: translateX(-3px);
+}
+
+.icon-btn-top {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+    padding: 8px;
+    border-radius: 10px;
+}
+
+.icon-btn-top:hover {
+    color: var(--text-main);
+    background: var(--border-card);
+}
+
+.btn-logout {
+    background: transparent;
+    border: 1px solid var(--border-card);
+    padding: 8px 16px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-logout:hover {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.btn-save {
+    background: var(--primary-neon);
+    color: #000;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 1rem;
+}
+
+.btn-save:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px var(--icon-bg);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px dashed var(--border-card);
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.btn-outline:hover {
+    color: var(--primary-neon);
+    border-color: var(--primary-neon);
+    background: var(--icon-bg);
+}
+
+/* =========================================
+   2. WIDGETS FLOTANTES (GLASSMORPHISM)
+   ========================================= */
+.glass-widget {
+    position: absolute;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-base);
+    transition: var(--transition-smooth);
+}
+
+.glass-widget:hover {
+    border-color: var(--primary-neon);
+    transform: translateY(-5px) scale(1.02) !important;
+}
+
+body.dark-mode .glass-widget {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(16, 185, 129, 0.05);
+}
+
+.widget-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+}
+
+.icon-small {
+    width: 24px;
+    height: 24px;
+    background: var(--icon-bg);
+    color: var(--primary-neon);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =========================================
+   3. TARJETAS DE APPS Y MÓDULOS
+   ========================================= */
+.app-card {
+    background-color: var(--panel-bg);
+    border-radius: 24px;
+    padding: 2.5rem;
+    border: 1px solid var(--border-card);
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition-smooth);
+    display: flex;
+    flex-direction: column;
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+    box-shadow: var(--shadow-base);
+}
+
+.app-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle 250px at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.1), transparent 80%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 0;
+    pointer-events: none;
+}
+
+body.dark-mode .app-card::before {
+    background: radial-gradient(circle 250px at var(--mouse-x) var(--mouse-y), rgba(16, 185, 129, 0.2), transparent 80%);
+}
+
+.app-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--primary-neon);
+    box-shadow: var(--shadow-hover);
+}
+
+.app-card:hover::before {
+    opacity: 1;
+}
+
+.app-card > * {
+    position: relative;
+    z-index: 1;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.app-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--bg-color);
+    border: 1px solid var(--border-card);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-main);
+    transition: var(--transition-smooth);
+}
+
+.app-card h3 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.app-card p {
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
+    flex-grow: 1;
+}
+
+/* Tarjetas del Dashboard */
+.module-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-base);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.module-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-neon);
+    box-shadow: var(--shadow-hover);
+}
+
+.module-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: var(--icon-bg);
+    color: var(--primary-neon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: 0.3s;
+}
+
+.module-card:hover .module-icon {
+    transform: scale(1.1) rotate(-5deg);
+}
+
+.module-card h3 {
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+    font-weight: 700;
+}
+
+.module-card p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    flex-grow: 1;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.module-btn {
+    background: transparent;
+    color: var(--primary-neon);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: auto;
+}
+
+/* =========================================
+   4. FORMULARIOS Y TOGGLE SWITCHES
+   ========================================= */
+.form-row {
+    display: flex;
+    gap: 1.5rem;
+    max-width: 600px;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    margin-bottom: 1.8rem;
+    flex: 1;
+    min-width: 250px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    background: var(--bg-color);
+    border: 1px solid var(--border-card);
+    color: var(--text-main);
+    padding: 0.9rem 1.2rem;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: var(--transition-smooth);
+    outline: none;
+}
+
+.form-input:focus {
+    border-color: var(--primary-neon);
+    box-shadow: 0 0 0 3px var(--icon-bg);
+}
+
+.form-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 26px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-card);
+    transition: 0.4s;
+    border-radius: 34px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #ffffff;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+    background-color: var(--primary-neon);
+}
+
+input:checked + .toggle-slider:before {
+    transform: translateX(24px);
+}
+
+/* =========================================
+   5. MODALES (LOGIN / REGISTRO)
+   ========================================= */
+#modalContainer {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+#modalContainer.show {
+    display: flex;
+    opacity: 1;
+}
+
+.login-modal-box {
+    background: var(--panel-bg);
+    padding: 2rem 2rem 1.5rem 2rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-card);
+    width: 90%;
+    max-width: 380px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+/* =========================================
+   6. BOTÓN FLOTANTE DE TEMA Y SUPER MENÚ
+   ========================================= */
+.theme-toggle {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--panel-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-base);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    z-index: 1001;
+    transition: var(--transition-smooth);
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1) rotate(15deg);
+    border-color: var(--primary-neon);
+    color: var(--primary-neon);
+}
+
+.icon-moon { display: block; }
+.icon-sun { display: none; }
+body.dark-mode .icon-moon { display: none; }
+body.dark-mode .icon-sun { display: block; }
+
+.super-theme-popup {
+    position: fixed;
+    bottom: 90px;
+    right: 30px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    padding: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    z-index: 1002;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    transform: translateY(10px);
+    opacity: 0;
+    transition: var(--transition-smooth);
+}
+
+.super-theme-popup.open {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* =========================================
+   7. SISTEMA GLOBAL DE NOTIFICACIONES (TOASTS)
+   ========================================= */
+#toastContainer {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.ngn-toast {
+    background: var(--panel-bg);
+    color: var(--text-main);
+    border: 1px solid var(--primary-neon);
+    padding: 12px 20px;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.ngn-toast.error {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.ngn-toast.info {
+    border-color: var(--info-color);
+}
+
+@media (max-width: 768px) {
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .theme-toggle {
+        bottom: 20px;
+        right: 20px;
+        width: 45px;
+        height: 45px;
+    }
+}
