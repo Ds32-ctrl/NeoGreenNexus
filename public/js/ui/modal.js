@@ -111,17 +111,27 @@ function initModalLogic(container) {
                 return;
             }
 
+            if (password.length < 6) {
+                showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+                return;
+            }
+
             btnSubmit.disabled = true;
             btnSubmit.style.opacity = '0.7';
 
             try {
                 if (isRegisterMode) {
                     const fullName = container.querySelector('#regName')?.value.trim() || 'Usuario NGN';
-                    const birthDate = (daySelect.value && monthSelect.value && yearSelect.value)
-                        ? `${yearSelect.value}-${monthSelect.value}-${daySelect.value}`
-                        : null;
+                    
+                    // Formatear fecha a YYYY-MM-DD para PostgreSQL
+                    let birthDate = null;
+                    if (daySelect?.value && monthSelect?.value && yearSelect?.value) {
+                        const mm = String(monthSelect.value).padStart(2, '0');
+                        const dd = String(daySelect.value).padStart(2, '0');
+                        birthDate = `${yearSelect.value}-${mm}-${dd}`;
+                    }
 
-                    const { error } = await supabase.auth.signUp({
+                    const { data, error } = await supabase.auth.signUp({
                         email,
                         password,
                         options: {
@@ -132,11 +142,22 @@ function initModalLogic(container) {
                             }
                         }
                     });
+
                     if (error) throw error;
-                    showToast('Cuenta creada. Verifica tu correo o inicia sesión.', 'success');
+
+                    // Si Confirm Email está desactivado, entra directo al Dashboard
+                    if (data?.session) {
+                        closeLoginModal();
+                        await checkActiveSession();
+                        showToast('¡Nodo creado! Bienvenido a NeoGreenNexus', 'success');
+                        navigateTo('/views/dashboard.html');
+                    } else {
+                        showToast('Cuenta creada. Revisa tu correo para confirmar el acceso.', 'info');
+                    }
                 } else {
                     const { error } = await supabase.auth.signInWithPassword({ email, password });
                     if (error) throw error;
+
                     closeLoginModal();
                     await checkActiveSession();
                     showToast('Bienvenido a NeoGreenNexus', 'success');

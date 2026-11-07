@@ -119,6 +119,7 @@ export async function initSettings() {
             btnSaveProfile.style.opacity = '0.7';
 
             try {
+                // Dentro del evento click de btnSaveProfile en public/js/controllers/settings.controller.js:
                 const { error } = await supabase.auth.updateUser({
                     data: {
                         full_name: inputName.value.trim(),
@@ -128,6 +129,17 @@ export async function initSettings() {
                     }
                 });
                 if (error) throw error;
+
+                // Sincronizar también en la tabla relacional public.profiles
+                await supabase.from('profiles').upsert({
+                    id: user.id,
+                    email: user.email,
+                    full_name: inputName.value.trim(),
+                    nickname: inputNickname.value.trim() || null,
+                    avatar_url: currentSelectedAvatar,
+                    recovery_email: inputRecoveryEmail.value.trim() || null,
+                    updated_at: new Date().toISOString()
+                });
                 showToast('Identidad y Apodo actualizados.');
             } catch (error) {
                 showToast(error.message, 'error');
