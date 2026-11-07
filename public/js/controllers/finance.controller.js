@@ -1,0 +1,1 @@
+export async function initFinance() { console.log("Finanzas cargadas"); }

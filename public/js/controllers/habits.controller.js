@@ -1,0 +1,1 @@
+export async function initHabits() { console.log("Hábitos cargados"); }

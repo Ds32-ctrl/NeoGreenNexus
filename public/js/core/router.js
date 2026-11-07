@@ -3,6 +3,11 @@ import { initDashboard } from '../controllers/dashboard.controller.js';
 import { initSettings } from '../controllers/settings.controller.js';
 import { initHomeHub } from '../controllers/home-hub.controller.js';
 import { init360Home } from '../controllers/360-home.controller.js';
+import { initZones } from '../controllers/zones.controller.js';
+import { initFamilyBoard } from '../controllers/family-board.controller.js';
+import { initFinance } from '../controllers/finance.controller.js';
+import { initInventory } from '../controllers/inventory.controller.js';
+import { initHabits } from '../controllers/habits.controller.js';
 import { showToast } from '../ui/toast.js';
 
 // Mapeo de rutas a sus controladores correspondientes

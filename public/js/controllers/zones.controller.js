@@ -1,0 +1,1 @@
+export async function initZones() { console.log("Zonas cargadas"); }

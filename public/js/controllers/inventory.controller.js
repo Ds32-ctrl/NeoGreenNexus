@@ -1,0 +1,1 @@
+export async function initInventory() { console.log("Inventario cargado"); }

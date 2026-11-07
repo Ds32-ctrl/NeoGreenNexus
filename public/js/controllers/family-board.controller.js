@@ -1,0 +1,1 @@
+export async function initFamilyBoard() { console.log("Family Board cargado"); }
