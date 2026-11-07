@@ -1,29 +1,6 @@
-<style>
-  /* Ocultar barra de desplazamiento vertical del modal manteniendo la funcionalidad */
-  .hide-scroll::-webkit-scrollbar { display: none; /* Chrome, Safari y Opera */ }
-  .hide-scroll { -ms-overflow-style: none; /* IE y Edge */ scrollbar-width: none; /* Firefox */ }
-
-  /* Estilos específicos del modal para scroll sutil en avatares */
-  .avatar-scroll::-webkit-scrollbar { height: 4px; }
-  .avatar-scroll::-webkit-scrollbar-track { background: var(--bg-color); border-radius: 10px; }
-  .avatar-scroll::-webkit-scrollbar-thumb { background: var(--border-card); border-radius: 10px; }
-  .avatar-scroll::-webkit-scrollbar-thumb:hover { background: var(--primary-neon); }
-</style>
-
-<div class="login-modal-box hide-scroll" style="
-  background: var(--panel-bg);
-  padding: 2rem 2rem 1.5rem 2rem;
-  border-radius: 20px;
-  border: 1px solid var(--border-card);
-  width: 90%;
-  max-width: 380px;
-  max-height: 90vh;
-  overflow-y: auto; /* Permite el scroll */
-  position: relative;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
-  text-align: center;">
-  
-  <button type="button" id="closeModal" style="
+<!-- public/views/login.html -->
+<div class="login-modal-box hide-scroll">
+  <button type="button" id="closeModal" aria-label="Cerrar ventana" style="
     position: absolute; top: 12px; right: 18px;
     background: transparent; border: none; font-size: 1.5rem;
     color: var(--text-muted); cursor: pointer; transition: color 0.3s;">&times;</button>
@@ -38,24 +15,13 @@
   <h2 id="authTitle" style="font-size: 1.6rem; font-weight: 800; margin-bottom: 0.3rem; color: var(--text-main);">Iniciar Sesión</h2>
   <p id="authSubtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Accede a tu entorno personal.</p>
 
-  <input type="email" id="loginEmail" placeholder="Correo electrónico" style="
-    width: 100%; padding: 10px 14px; margin-bottom: 10px;
-    background: var(--bg-color); border: 1px solid var(--border-card);
-    border-radius: 12px; color: var(--text-main); outline: none; transition: 0.3s;">
-    
-  <input type="password" id="loginPassword" placeholder="Contraseña" style="
-    width: 100%; padding: 10px 14px; margin-bottom: 10px;
-    background: var(--bg-color); border: 1px solid var(--border-card);
-    border-radius: 12px; color: var(--text-main); outline: none; transition: 0.3s;">
+  <input type="email" id="loginEmail" class="form-input" placeholder="Correo electrónico" style="margin-bottom: 10px; padding: 10px 14px;">
+  <input type="password" id="loginPassword" class="form-input" placeholder="Contraseña" style="margin-bottom: 10px; padding: 10px 14px;">
 
   <!-- CAMPOS DE REGISTRO OCULTOS -->
   <div id="extraRegisterFields" style="display: none;">
-    <input type="text" id="regName" placeholder="Nombre completo" style="
-      width: 100%; padding: 10px 14px; margin-bottom: 10px;
-      background: var(--bg-color); border: 1px solid var(--border-card);
-      border-radius: 12px; color: var(--text-main); outline: none;">
+    <input type="text" id="regName" class="form-input" placeholder="Nombre completo" style="margin-bottom: 10px; padding: 10px 14px;">
       
-    <!-- Selector de fechas con desplegables -->
     <div style="display: flex; gap: 8px; margin-bottom: 12px;">
       <select id="regDay" style="flex: 1; padding: 10px 5px; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-card); color: var(--text-main); outline: none; font-size: 0.9rem; cursor: pointer;">
         <option value="" disabled selected>Día</option>
@@ -68,7 +34,6 @@
       </select>
     </div>
       
-    <!-- Avatares estilo Bottts -->
     <div style="margin-bottom: 15px; text-align: left;">
       <span style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; display: block; text-align: center;">Selecciona tu nodo visual:</span>
       <div id="avatarGrid" class="avatar-scroll" style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-behavior: smooth;">
@@ -84,10 +49,7 @@
     </div>
   </div>
 
-  <button type="button" id="btnSubmitAuth" style="
-    width: 100%; background: var(--primary-neon); color: #000;
-    border: none; padding: 12px; border-radius: 12px; margin-bottom: 12px;
-    font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+  <button type="button" id="btnSubmitAuth" class="btn-save" style="width: 100%; justify-content: center; margin-top: 0; margin-bottom: 12px; padding: 12px;">
     Ingresar
   </button>
 
@@ -112,7 +74,7 @@
 
   <div style="margin-top: 15px; font-size: 0.85rem;">
     <span style="color: var(--text-muted);" id="toggleText">¿Aún no eres parte?</span>
-    <a href="javascript:void(0)" id="toggleAuthMode" style="color: var(--primary-neon); text-decoration: none; font-weight: 600; margin-left: 5px;">Crear cuenta</a>
+    <a href="#" id="toggleAuthMode" style="color: var(--primary-neon); text-decoration: none; font-weight: 600; margin-left: 5px;">Crear cuenta</a>
   </div>
 
   <p id="authMessage" style="font-size: 0.85rem; margin-top: 10px; display: none;"></p>
