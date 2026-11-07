@@ -1,0 +1,339 @@
+<style>
+  /* Animaciones y estructura base */
+  .dashboard-wrapper {
+    padding: 0 5% 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--text-main);
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* NUEVA BARRA SUPERIOR DEL DASHBOARD */
+  .dash-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 5%;
+    margin-bottom: 3rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-light);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .dash-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-main);
+  }
+
+  .dash-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  /* Perfil en la barra superior */
+  .dash-user-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-right: 1.5rem;
+    border-right: 1px solid var(--border-card);
+  }
+
+  .dash-avatar-mini {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-color);
+    border: 2px solid var(--primary-neon);
+    padding: 2px;
+    object-fit: cover;
+  }
+
+  .dash-user-info-mini h2 { 
+    font-size: 0.95rem; 
+    font-weight: 700; 
+    color: var(--text-main); 
+    margin: 0;
+  }
+  
+  .dash-user-info-mini p { 
+    color: var(--primary-neon); 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    display: flex; 
+    align-items: center; 
+    gap: 4px;
+    margin: 0;
+  }
+  
+  .status-dot { 
+    width: 6px; 
+    height: 6px; 
+    background: var(--primary-neon); 
+    border-radius: 50%; 
+    box-shadow: 0 0 6px var(--primary-neon); 
+  }
+
+  /* Botones de acción superior */
+  .icon-btn-top {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-smooth);
+    padding: 8px;
+    border-radius: 10px;
+  }
+
+  .icon-btn-top:hover {
+    color: var(--text-main);
+    background: var(--border-card);
+  }
+
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border-card);
+    padding: 8px 16px;
+    border-radius: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .btn-logout:hover {
+    border-color: #ef4444;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+  }
+
+  /* CUADRÍCULA DE MÓDULOS */
+  .module-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+  
+  .module-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-card);
+    border-radius: 20px;
+    padding: 2rem;
+    text-align: left;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    box-shadow: var(--shadow-base);
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .module-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-neon);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .module-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 14px;
+    background: var(--icon-bg);
+    color: var(--primary-neon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    transition: 0.3s;
+  }
+
+  .module-card:hover .module-icon {
+    transform: scale(1.1) rotate(-5deg);
+  }
+
+  .module-card h3 { font-size: 1.3rem; margin-bottom: 0.5rem; color: var(--text-main); font-weight: 700;}
+  .module-card p { color: var(--text-muted); font-size: 0.9rem; flex-grow: 1; margin-bottom: 1.5rem; line-height: 1.5;}
+  
+  .module-btn {
+    background: transparent;
+    color: var(--primary-neon);
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: auto;
+  }
+
+  @media (max-width: 768px) {
+    .dash-navbar { flex-direction: column; gap: 1.5rem; padding: 1.5rem; }
+    .dash-nav-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .dash-user-mini { border-right: none; padding-right: 0; }
+  }
+</style>
+
+<div class="dash-navbar">
+  <div class="dash-brand">
+    <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 15 L85 35 L85 65 L50 85 L15 65 L15 35 Z" stroke="var(--primary-neon)" stroke-width="6" fill="none"/>
+      <circle cx="50" cy="50" r="12" fill="var(--primary-neon)"/>
+    </svg>
+    NeoGreenNexus
+  </div>
+  
+  <div class="dash-nav-actions">
+    <div class="dash-user-mini">
+      <img id="dashAvatar" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=N1&backgroundColor=e2e8f0" alt="Avatar" class="dash-avatar-mini">
+      <div class="dash-user-info-mini">
+        <h2 id="dashName">Cargando...</h2>
+        <p><span class="status-dot"></span> En línea</p>
+      </div>
+    </div>
+
+    <button class="icon-btn-top encrypted-route" data-target="/views/settings.html" title="Ajustes del Nodo">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+    </button>
+
+    <button id="btnLogout" class="btn-logout">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      Salir
+    </button>
+  </div>
+</div>
+
+<div class="dashboard-wrapper">
+  <div class="module-grid">
+    
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/360-home.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+      </div>
+      <h3>360 Home</h3>
+      <p>Tu núcleo de control. Visualiza el estado general de tu casa, resumen climático y alertas diarias consolidadas.</p>
+      <div class="module-btn">Iniciar módulo <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/zones.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+      </div>
+      <h3>Zonas del Hogar</h3>
+      <p>Divide tu entorno. Gestiona espacios, inventario de herramientas, tareas específicas por habitación y mantenimiento.</p>
+      <div class="module-btn">Configurar zonas <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/family-board.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+      </div>
+      <h3>Tablero Compartido</h3>
+      <p>Centro de comunicación. Deja notas visuales, asigna tareas a otros miembros y coordina eventos en el calendario de casa.</p>
+      <div class="module-btn">Abrir tablero <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/finance.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      </div>
+      <h3>Flujo Financiero</h3>
+      <p>Control de gastos domésticos, registro de pagos fijos (agua, luz, internet) y presupuesto mensual del hogar.</p>
+      <div class="module-btn">Revisar cuentas <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/inventory.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+      </div>
+      <h3>Despensa Inteligente</h3>
+      <p>Inventario de consumibles. Crea listas de compras sincronizadas y planifica los menús para evitar el desperdicio.</p>
+      <div class="module-btn">Ver inventario <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+    <a href="javascript:void(0)" class="module-card encrypted-route" data-target="/views/habits.html">
+      <div class="module-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+      </div>
+      <h3>Rastreador de Hábitos</h3>
+      <p>Registra rutinas personales, estructura tu jornada y mantén el enfoque en tus metas de salud física y mental.</p>
+      <div class="module-btn">Registrar rutina <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></div>
+    </a>
+
+  </div>
+</div>
+
+<script>
+  // Carga de perfil
+  (async function initDashboard() {
+    try {
+      if(window.miSupabase) {
+        const { data: { user } } = await window.miSupabase.auth.getUser();
+        if (user) {
+          const metadata = user.user_metadata || {};
+          // Tomamos solo el primer nombre para mantener el minimalismo
+          const firstName = metadata.full_name ? metadata.full_name.split(' ')[0] : 'Usuario';
+          document.getElementById('dashName').textContent = firstName;
+          
+          if (metadata.avatar_url) {
+            document.getElementById('dashAvatar').src = metadata.avatar_url;
+          }
+        } else {
+          document.getElementById('dashName').textContent = "Sesión inactiva";
+        }
+      }
+    } catch(e) {
+      console.error("Error al cargar perfil:", e);
+    }
+  })();
+
+  // EL BOTÓN DE DESCONEXIÓN A PRUEBA DE FALLOS
+  document.getElementById('btnLogout').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnLogout');
+    btn.innerHTML = 'Saliendo...';
+    btn.style.opacity = '0.5';
+    btn.style.pointerEvents = 'none'; // Evita dobles clics
+    
+    try {
+      if(window.miSupabase) {
+        // Ejecuta el cierre de sesión, pero le da máximo 1.5 segundos. 
+        // Si Supabase se cuelga, el temporizador gana y pasamos al bloque "finally"
+        await Promise.race([
+          window.miSupabase.auth.signOut(),
+          new Promise(resolve => setTimeout(resolve, 1500))
+        ]);
+      }
+    } catch (error) {
+      console.warn("Forzando salida por error en la red:", error);
+    } finally {
+      // ESTO ES LO IMPORTANTE: Se ejecuta sin importar si Supabase falló o no
+      // Borramos el token manualmente de la memoria del navegador
+      localStorage.clear(); 
+      sessionStorage.clear();
+      // Y forzamos la redirección
+      window.location.href = '/'; 
+    }
+  });
+</script>

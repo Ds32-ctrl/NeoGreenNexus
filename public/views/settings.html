@@ -1,0 +1,575 @@
+<style>
+  /* ==========================================
+     ESTILOS DEL PANEL DE AJUSTES (V4 - SUPER THEME & CATALOG)
+     ========================================== */
+  .settings-wrapper {
+    padding: 0 5% 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    color: var(--text-main);
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .settings-header {
+    display: flex; align-items: center; gap: 1.5rem;
+    margin-bottom: 2rem; padding-top: 1rem;
+  }
+
+  .btn-back {
+    background: var(--panel-bg); border: 1px solid var(--border-card);
+    width: 40px; height: 40px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); cursor: pointer; transition: var(--transition-smooth);
+    box-shadow: var(--shadow-base);
+  }
+  .btn-back:hover {
+    color: var(--primary-neon); border-color: var(--primary-neon);
+    transform: translateX(-3px);
+  }
+
+  .settings-title { font-size: 1.8rem; font-weight: 800; }
+
+  .settings-container {
+    display: grid; grid-template-columns: 280px 1fr; gap: 2rem;
+    background: var(--panel-bg); border: 1px solid var(--border-card);
+    border-radius: 24px; min-height: 600px; box-shadow: var(--shadow-base); overflow: hidden;
+  }
+
+  /* SIDEBAR DE PESTAÑAS */
+  .settings-sidebar {
+    background: var(--bg-color); border-right: 1px solid var(--border-card);
+    padding: 2rem 1.5rem;
+  }
+  .tab-btn {
+    width: 100%; text-align: left; background: transparent; border: none;
+    padding: 1rem 1.2rem; border-radius: 12px; color: var(--text-muted);
+    font-weight: 600; font-size: 0.95rem; cursor: pointer;
+    transition: var(--transition-smooth); display: flex; align-items: center;
+    gap: 12px; margin-bottom: 0.5rem;
+  }
+  .tab-btn:hover { background: var(--border-card); color: var(--text-main); }
+  .tab-btn.active { background: var(--icon-bg); color: var(--primary-neon); }
+
+  /* ÁREA DE CONTENIDO */
+  .settings-content { padding: 3rem; position: relative; }
+  .tab-pane { display: none; animation: slideInRight 0.3s ease-out forwards; }
+  .tab-pane.active { display: block; }
+  
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(15px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .pane-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .pane-subtitle { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 2.5rem; }
+
+  /* FORMULARIOS */
+  .form-row { display: flex; gap: 1.5rem; max-width: 600px; flex-wrap: wrap; }
+  .form-group { margin-bottom: 1.8rem; flex: 1; min-width: 250px; }
+  .form-group label {
+    display: block; font-size: 0.85rem; font-weight: 600;
+    color: var(--text-muted); margin-bottom: 0.5rem;
+  }
+  .form-input {
+    width: 100%; background: var(--bg-color); border: 1px solid var(--border-card);
+    color: var(--text-main); padding: 0.9rem 1.2rem; border-radius: 12px;
+    font-size: 0.95rem; transition: var(--transition-smooth); outline: none;
+  }
+  .form-input:focus { border-color: var(--primary-neon); box-shadow: 0 0 0 3px var(--icon-bg); }
+  .form-input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* AVATARES INTERACTIVOS & CATÁLOGO */
+  .avatar-selection-area { display: flex; align-items: flex-start; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap; }
+  .live-avatar-preview {
+    width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--primary-neon);
+    background: var(--bg-color); padding: 4px; box-shadow: 0 0 15px var(--icon-bg);
+    transition: var(--transition-smooth); object-fit: cover;
+  }
+  .avatar-grid-wrapper { flex: 1; max-width: 400px; }
+  .avatar-grid { 
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; 
+    max-height: 65px; overflow: hidden; transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .avatar-grid.expanded { max-height: 500px; }
+  
+  .avatar-choice {
+    width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: 0.2s; background: var(--border-light); object-fit: cover;
+  }
+  .avatar-choice:hover { transform: scale(1.1); }
+  .avatar-choice.selected { border-color: var(--primary-neon); transform: scale(1.1); }
+  
+  .btn-outline {
+    background: transparent; border: 1px dashed var(--border-card);
+    color: var(--text-muted); padding: 6px 12px; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: 0.3s;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .btn-outline:hover { color: var(--primary-neon); border-color: var(--primary-neon); background: var(--icon-bg); }
+
+  /* MOTOR DE TEMAS & TOGGLES */
+  .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .theme-card {
+    background: var(--bg-color); border: 2px solid var(--border-card);
+    border-radius: 16px; padding: 1.5rem 1rem; text-align: center;
+    cursor: pointer; transition: var(--transition-smooth);
+  }
+  .theme-card.active { border-color: var(--primary-neon); box-shadow: 0 5px 15px var(--icon-bg); }
+  .theme-color-preview {
+    width: 40px; height: 40px; border-radius: 50%; margin: 0 auto 10px;
+    box-shadow: inset 0 -3px 5px rgba(0,0,0,0.2);
+  }
+  .theme-card h4 { font-size: 0.9rem; margin: 0; color: var(--text-main); }
+  .theme-card p { font-size: 0.75rem; color: var(--text-muted); margin: 4px 0 0 0; }
+
+  .setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.2rem; background: var(--bg-color); border: 1px solid var(--border-card);
+    border-radius: 14px; margin-bottom: 1rem;
+  }
+  .setting-info h4 { margin: 0 0 4px 0; font-size: 1rem; }
+  .setting-info p { margin: 0; color: var(--text-muted); font-size: 0.85rem; }
+
+  .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: var(--border-card); transition: .4s; border-radius: 34px;
+  }
+  .toggle-slider:before {
+    position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px;
+    background-color: white; transition: .3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 50%;
+  }
+  input:checked + .toggle-slider { background-color: var(--primary-neon); }
+  input:checked + .toggle-slider:before { transform: translateX(24px); }
+
+  /* BOTONES DE ACCIÓN */
+  .btn-save {
+    background: var(--primary-neon); color: #000; border: none;
+    padding: 0.8rem 2rem; border-radius: 12px; font-weight: 700;
+    cursor: pointer; transition: var(--transition-smooth);
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 1rem;
+  }
+  .btn-save:hover { transform: translateY(-2px); box-shadow: 0 8px 20px var(--icon-bg); }
+
+  @media (max-width: 900px) {
+    .settings-container { grid-template-columns: 1fr; }
+    .settings-sidebar { border-right: none; border-bottom: 1px solid var(--border-card); display: flex; overflow-x: auto; padding: 1rem; }
+    .tab-btn { flex-shrink: 0; width: auto; margin-bottom: 0; margin-right: 10px; }
+    .settings-content { padding: 1.5rem; }
+  }
+</style>
+
+<div class="settings-wrapper">
+  <div class="settings-header">
+    <button class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al inicio">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+    </button>
+    <h1 class="settings-title">Ajustes del Nodo</h1>
+  </div>
+
+  <div class="settings-container">
+    
+    <!-- SIDEBAR -->
+    <div class="settings-sidebar">
+      <button class="tab-btn active" data-tab="perfil">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        Perfil de Usuario
+      </button>
+      <button class="tab-btn" data-tab="apariencia">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        Motor Creativo
+      </button>
+      <button class="tab-btn" data-tab="seguridad">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Seguridad
+      </button>
+    </div>
+
+    <!-- CONTENIDO -->
+    <div class="settings-content">
+      
+      <!-- PESTAÑA 1: PERFIL -->
+      <div id="perfil" class="tab-pane active">
+        <h2 class="pane-title">Identidad Pública</h2>
+        <p class="pane-subtitle">Actualiza tu información y apodo dentro de la red local.</p>
+        
+        <div class="avatar-selection-area">
+          <img id="previewAvatar" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=N1&backgroundColor=e2e8f0" class="live-avatar-preview">
+          <div class="avatar-grid-wrapper">
+            <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Catálogo de Representación (Bots & Formas):</label>
+            <div class="avatar-grid" id="avatarSelectorGrid">
+              <!-- JS inyectará los 25 avatares aquí -->
+            </div>
+            <button class="btn-outline" id="btnExpandCatalog">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              <span id="expandText">Expandir catálogo completo</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre del Nodo (Display Name)</label>
+            <input type="text" id="inputName" class="form-input" placeholder="Ej. Administrador Principal">
+          </div>
+          <div class="form-group">
+            <label>Apodo / Usuario Único</label>
+            <input type="text" id="inputNickname" class="form-input" placeholder="Ej. daniel_carrillo">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Correo Electrónico Autenticado</label>
+            <input type="email" id="inputEmail" class="form-input" disabled value="Cargando...">
+          </div>
+          <div class="form-group">
+            <label>Correo de Recuperación (Opcional)</label>
+            <input type="email" id="inputRecoveryEmail" class="form-input" placeholder="Ruta de escape secundaria...">
+          </div>
+        </div>
+
+        <button id="btnSaveProfile" class="btn-save">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+          Guardar Cambios
+        </button>
+      </div>
+
+      <!-- PESTAÑA 2: MOTOR CREATIVO -->
+      <div id="apariencia" class="tab-pane">
+        <h2 class="pane-title">Motor Cromático Personalizado</h2>
+        <p class="pane-subtitle">Reescribe el código de color de tu ecosistema en tiempo real.</p>
+
+        <div class="theme-grid" id="themeEngineGrid">
+          <div class="theme-card active" data-color="#10b981">
+            <div class="theme-color-preview" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+            <h4>Neo Esmeralda</h4><p>Por defecto</p>
+          </div>
+          <div class="theme-card" data-color="#a855f7">
+            <div class="theme-color-preview" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"></div>
+            <h4>Púrpura Minimalista</h4><p>Diseño de Software</p>
+          </div>
+          <div class="theme-card" data-color="#0ea5e9">
+            <div class="theme-color-preview" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);"></div>
+            <h4>Océano Profundo</h4><p>Enfoque analítico</p>
+          </div>
+          <div class="theme-card" data-color="#f59e0b">
+            <div class="theme-color-preview" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+            <h4>Ámbar Cálido</h4><p>Anti-fatiga visual</p>
+          </div>
+          <div class="theme-card" data-color="#f43f5e">
+            <div class="theme-color-preview" style="background: linear-gradient(135deg, #f43f5e, #e11d48);"></div>
+            <h4>Carmesí Fuerte</h4><p>Alta energía</p>
+          </div>
+        </div>
+        
+        <div class="setting-row" style="border-color: var(--primary-neon);">
+          <div class="setting-info">
+            <h4 style="color: var(--primary-neon);">Super Botón de Temas</h4>
+            <p>Transforma el botón inferior derecho en un menú desplegable de acceso rápido a todos los temas. (Solo activo al iniciar sesión).</p>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="toggleSuperTheme">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- PESTAÑA 3: SEGURIDAD -->
+      <div id="seguridad" class="tab-pane">
+        <h2 class="pane-title">Malla de Seguridad</h2>
+        <p class="pane-subtitle">Gestiona las llaves criptográficas de tu acceso.</p>
+        <button class="btn-back" style="width: auto; padding: 0 1.5rem;" onclick="showToast('Se ha enviado un enlace de recuperación a tu correo.', 'info')">
+          Solicitar Cambio de Contraseña
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  (async function initSettings() {
+    // 1. TABS
+    const tabs = document.querySelectorAll('.tab-btn');
+    const panes = document.querySelectorAll('.tab-pane');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panes.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+      });
+    });
+
+    // 2. CATÁLOGO EXPANDIBLE DE AVATARES (25 FIJOS + Google)
+    const avatarGrid = document.getElementById('avatarSelectorGrid');
+    const previewAvatar = document.getElementById('previewAvatar');
+    const btnExpandCatalog = document.getElementById('btnExpandCatalog');
+    const expandText = document.getElementById('expandText');
+    
+    let currentSelectedAvatar = '';
+    let userGoogleAvatarUrl = ''; 
+    
+    // Lista curada de 25 semillas con diferentes estilos (Bots neutrales, Shapes abstractos)
+    const fixedCatalog = [
+      { style: 'bottts-neutral', seed: 'Nexus' }, { style: 'bottts-neutral', seed: 'Alpha' },
+      { style: 'shapes', seed: 'Prism' }, { style: 'bottts-neutral', seed: 'Forge' },
+      { style: 'shapes', seed: 'Vertex' }, { style: 'bottts-neutral', seed: 'Nova' },
+      { style: 'bottts-neutral', seed: 'Echo' }, { style: 'shapes', seed: 'Flux' },
+      { style: 'bottts-neutral', seed: 'Pulse' }, { style: 'bottts-neutral', seed: 'Cipher' },
+      { style: 'shapes', seed: 'Aero' }, { style: 'bottts-neutral', seed: 'Drift' },
+      { style: 'shapes', seed: 'Zen' }, { style: 'bottts-neutral', seed: 'Dash' },
+      { style: 'bottts-neutral', seed: 'Neon' }, { style: 'shapes', seed: 'Jolt' },
+      { style: 'bottts-neutral', seed: 'Volt' }, { style: 'shapes', seed: 'Warp' },
+      { style: 'bottts-neutral', seed: 'Kinet' }, { style: 'bottts-neutral', seed: 'Omni' },
+      { style: 'shapes', seed: 'Sol' }, { style: 'bottts-neutral', seed: 'Luna' },
+      { style: 'shapes', seed: 'Terra' }, { style: 'bottts-neutral', seed: 'Aura' },
+      { style: 'bottts-neutral', seed: 'Spark' }
+    ];
+
+    const renderCatalog = (activeUrl) => {
+      avatarGrid.innerHTML = '';
+      let urls = [];
+      
+      if(userGoogleAvatarUrl) urls.push(userGoogleAvatarUrl);
+      
+      fixedCatalog.forEach(item => {
+        urls.push(`https://api.dicebear.com/7.x/${item.style}/svg?seed=${item.seed}&backgroundColor=e2e8f0,b6e3f4,c0aede,d1d4f9`);
+      });
+
+      if(activeUrl && !urls.includes(activeUrl)) urls[0] = activeUrl; 
+
+      urls.forEach(url => {
+        const img = document.createElement('img');
+        img.src = url;
+        img.className = `avatar-choice ${activeUrl === url ? 'selected' : ''}`;
+        img.addEventListener('click', () => {
+          document.querySelectorAll('.avatar-choice').forEach(a => a.classList.remove('selected'));
+          img.classList.add('selected');
+          previewAvatar.src = url;
+          currentSelectedAvatar = url;
+        });
+        avatarGrid.appendChild(img);
+      });
+    };
+
+    btnExpandCatalog.addEventListener('click', () => {
+      avatarGrid.classList.toggle('expanded');
+      if(avatarGrid.classList.contains('expanded')) {
+        expandText.textContent = "Contraer catálogo";
+        btnExpandCatalog.querySelector('svg').innerHTML = '<polyline points="18 15 12 9 6 15"></polyline>';
+      } else {
+        expandText.textContent = "Expandir catálogo completo";
+        btnExpandCatalog.querySelector('svg').innerHTML = '<polyline points="6 9 12 15 18 9"></polyline>';
+      }
+    });
+
+    // 3. DATOS DE SUPABASE (Incluye Apodo)
+    const inputName = document.getElementById('inputName');
+    const inputNickname = document.getElementById('inputNickname');
+    const inputEmail = document.getElementById('inputEmail');
+    const inputRecoveryEmail = document.getElementById('inputRecoveryEmail');
+    const btnSaveProfile = document.getElementById('btnSaveProfile');
+
+    if(window.miSupabase) {
+      try {
+        const { data: { user } } = await window.miSupabase.auth.getUser();
+        if (user) {
+          inputEmail.value = user.email;
+          const metadata = user.user_metadata || {};
+          
+          if(metadata.full_name) inputName.value = metadata.full_name;
+          if(metadata.nickname) inputNickname.value = metadata.nickname;
+          if(metadata.recovery_email) inputRecoveryEmail.value = metadata.recovery_email;
+          
+          if(user.identities && user.identities.length > 0) {
+              const googleIdentity = user.identities.find(id => id.provider === 'google');
+              if(googleIdentity && googleIdentity.identity_data && googleIdentity.identity_data.avatar_url) {
+                  userGoogleAvatarUrl = googleIdentity.identity_data.avatar_url;
+              }
+          }
+
+          const userAvatar = metadata.avatar_url || userGoogleAvatarUrl || `https://api.dicebear.com/7.x/bottts-neutral/svg?seed=N1&backgroundColor=e2e8f0`;
+          previewAvatar.src = userAvatar;
+          currentSelectedAvatar = userAvatar;
+          
+          renderCatalog(userAvatar);
+        }
+      } catch (error) { console.error("Error cargando perfil:", error); }
+
+      btnSaveProfile.addEventListener('click', async () => {
+        btnSaveProfile.innerHTML = "Guardando...";
+        btnSaveProfile.style.opacity = '0.7';
+
+        try {
+          const { error } = await window.miSupabase.auth.updateUser({
+            data: { 
+              full_name: inputName.value.trim(),
+              nickname: inputNickname.value.trim(),
+              avatar_url: currentSelectedAvatar,
+              recovery_email: inputRecoveryEmail.value.trim()
+            }
+          });
+
+          if (error) throw error;
+          
+          const miniDashName = document.getElementById('dashName');
+          const miniDashAvatar = document.getElementById('dashAvatar');
+          if(miniDashName && inputName.value.trim()) miniDashName.textContent = inputName.value.trim().split(' ')[0];
+          if(miniDashAvatar) miniDashAvatar.src = currentSelectedAvatar;
+
+          showToast('Identidad y Apodo actualizados.');
+        } catch (error) {
+          showToast(error.message, 'error');
+        } finally {
+          btnSaveProfile.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Guardar Cambios';
+          btnSaveProfile.style.opacity = '1';
+        }
+      });
+    }
+
+    // 4. MOTOR DE TEMAS & SUPER BOTÓN
+    const themeCards = document.querySelectorAll('.theme-card');
+    const toggleSuperTheme = document.getElementById('toggleSuperTheme');
+    
+    const applyThemeColor = (hexColor) => {
+      document.documentElement.style.setProperty('--primary-neon', hexColor);
+      let c;
+      if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hexColor)){
+          c = hexColor.substring(1).split('');
+          if(c.length == 3) c = [c[0], c[0], c[1], c[1], c[2], c[2]];
+          c = '0x'+c.join('');
+          const r = (c>>16)&255, g = (c>>8)&255, b = c&255;
+          document.documentElement.style.setProperty('--icon-bg', `rgba(${r}, ${g}, ${b}, 0.1)`);
+          document.documentElement.style.setProperty('--bg-gradient-1', `rgba(${r}, ${g}, ${b}, 0.08)`);
+      }
+    };
+
+    const savedColor = localStorage.getItem('ngn_theme_color');
+    if(savedColor) {
+      applyThemeColor(savedColor);
+      themeCards.forEach(c => {
+        c.classList.remove('active');
+        if(c.getAttribute('data-color') === savedColor) c.classList.add('active');
+      });
+    }
+
+    themeCards.forEach(card => {
+      card.addEventListener('click', () => {
+        themeCards.forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        const newColor = card.getAttribute('data-color');
+        applyThemeColor(newColor);
+        localStorage.setItem('ngn_theme_color', newColor);
+        showToast('Motor cromático actualizado.');
+      });
+    });
+
+    // LÓGICA DE INYECCIÓN DEL SUPER BOTÓN CROMÁTICO GLOBÁL
+    const isSuperMode = localStorage.getItem('ngn_super_theme') === 'true';
+    toggleSuperTheme.checked = isSuperMode;
+
+    const injectSuperButton = () => {
+      // Evita duplicados
+      if(document.getElementById('superThemeOverlayBtn')) return;
+      
+      const originalBtn = document.getElementById('themeToggle');
+      if(!originalBtn) return;
+
+      // Creamos el botón Super superpuesto exactamente encima del original
+      const superBtn = document.createElement('button');
+      superBtn.id = 'superThemeOverlayBtn';
+      superBtn.className = 'theme-toggle'; // Hereda tus estilos globales
+      superBtn.style.zIndex = '1002'; // Por encima del original
+      superBtn.style.backgroundColor = 'var(--primary-neon)';
+      superBtn.style.color = '#fff';
+      superBtn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>';
+      
+      // Menú flotante invisible por defecto
+      const superMenu = document.createElement('div');
+      superMenu.id = 'superThemeMenuPopup';
+      superMenu.style.cssText = `
+        position: fixed; bottom: 90px; right: 30px; background: var(--panel-bg); 
+        border: 1px solid var(--border-card); border-radius: 16px; padding: 15px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1002; display: none; 
+        flex-direction: column; gap: 10px; transform: translateY(10px); opacity: 0; 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      `;
+      
+      // Opciones del menú (Colores + DarkMode)
+      const colors = ['#10b981', '#a855f7', '#0ea5e9', '#f59e0b', '#f43f5e'];
+      let colorHTML = '<div style="display: flex; gap: 8px; margin-bottom: 5px;">';
+      colors.forEach(col => {
+        colorHTML += `<div class="super-color-dot" data-col="${col}" style="width: 25px; height: 25px; border-radius: 50%; background: ${col}; cursor: pointer; border: 2px solid ${localStorage.getItem('ngn_theme_color') === col ? 'var(--text-main)' : 'transparent'}; transition: 0.2s;"></div>`;
+      });
+      colorHTML += '</div><hr style="border-color: var(--border-card); margin: 5px 0;">';
+      colorHTML += `<button id="superThemeDarkModeBtn" style="background:transparent; border:none; color:var(--text-main); font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> Modo Noche</button>`;
+      
+      superMenu.innerHTML = colorHTML;
+      
+      document.body.appendChild(superBtn);
+      document.body.appendChild(superMenu);
+
+      // Eventos del Botón Super
+      superBtn.addEventListener('click', () => {
+        const isMenuOpen = superMenu.style.display === 'flex';
+        if(isMenuOpen) {
+          superMenu.style.opacity = '0'; superMenu.style.transform = 'translateY(10px)';
+          setTimeout(() => superMenu.style.display = 'none', 300);
+        } else {
+          superMenu.style.display = 'flex';
+          setTimeout(() => { superMenu.style.opacity = '1'; superMenu.style.transform = 'translateY(0)'; }, 10);
+        }
+      });
+
+      // Eventos de Colores en el Menú
+      superMenu.querySelectorAll('.super-color-dot').forEach(dot => {
+        dot.addEventListener('click', (e) => {
+          const newColor = e.target.getAttribute('data-col');
+          applyThemeColor(newColor);
+          localStorage.setItem('ngn_theme_color', newColor);
+          superMenu.querySelectorAll('.super-color-dot').forEach(d => d.style.borderColor = 'transparent');
+          e.target.style.borderColor = 'var(--text-main)';
+          
+          // Sincroniza visualmente la pestaña si sigue abierta
+          document.querySelectorAll('.theme-card').forEach(c => {
+             c.classList.remove('active');
+             if(c.getAttribute('data-color') === newColor) c.classList.add('active');
+          });
+        });
+      });
+
+      // Evento Modo Oscuro del Menú
+      document.getElementById('superThemeDarkModeBtn').addEventListener('click', () => {
+        document.body.classList.toggle('dark-mode');
+        localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+      });
+    };
+
+    const removeSuperButton = () => {
+      const superBtn = document.getElementById('superThemeOverlayBtn');
+      const superMenu = document.getElementById('superThemeMenuPopup');
+      if(superBtn) superBtn.remove();
+      if(superMenu) superMenu.remove();
+    };
+
+    toggleSuperTheme.addEventListener('change', (e) => {
+      localStorage.setItem('ngn_super_theme', e.target.checked);
+      if(e.target.checked) injectSuperButton();
+      else removeSuperButton();
+    });
+
+    // Inyecta el botón si está activo al cargar
+    if(isSuperMode) injectSuperButton();
+
+    // ESCUCHADOR DE CIERRE DE SESIÓN PARA DESTRUIR EL BOTÓN
+    if(window.miSupabase) {
+      window.miSupabase.auth.onAuthStateChange((event, session) => {
+        if (!session) removeSuperButton(); // Devuelve el botón clásico al cerrar sesión
+      });
+    }
+
+  })();
+</script>
