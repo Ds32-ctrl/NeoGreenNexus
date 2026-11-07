@@ -1,0 +1,204 @@
+<!-- public/views/finance.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera del Ecosistema Financiero -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Flujo Financiero</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Auditoría de liquidez, control presupuestario, pagos fijos y libro mayor</p>
+      </div>
+    </div>
+
+    <!-- Selector de Periodo y Exportación CSV -->
+    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+      <select id="finMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.88rem; cursor: pointer; background: var(--panel-bg);">
+        <option value="all">Todo el historial</option>
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
+
+      <button type="button" id="btnExportCSV" class="btn-outline" style="padding: 0.65rem 1.1rem; background: var(--panel-bg);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar CSV
+      </button>
+    </div>
+  </div>
+
+  <!-- Fila 1: 4 Tarjetas KPI Financieras -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
+    
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Balance Disponible</span>
+      <h2 id="finNetBalance" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--primary-neon);">$0.00</h2>
+      <span id="finBalanceStatus" style="font-size: 0.78rem; color: var(--text-muted);">Liquidez neta del periodo</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingresos Totales</span>
+      <h2 id="finTotalIncome" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: #10b981;">$0.00</h2>
+      <span id="finIncomeCount" style="font-size: 0.78rem; color: var(--text-muted);">0 entradas registradas</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Egresos / Gastos</span>
+      <h2 id="finTotalExpense" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--danger-color);">$0.00</h2>
+      <span id="finRecurringSum" style="font-size: 0.78rem; color: var(--text-muted);">Costos fijos: $0.00</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Tasa de Ahorro</span>
+      <h2 id="finSavingsRate" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--info-color);">0%</h2>
+      <span id="finSavingsHint" style="font-size: 0.78rem; color: var(--text-muted);">Meta recomendada: ≥ 20%</span>
+    </div>
+
+  </div>
+
+  <!-- Fila 2: Termómetro de Presupuesto Mensual -->
+  <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.8rem; box-shadow: var(--shadow-base);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.8rem;">
+      <div>
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Límite de Presupuesto Mensual de Gastos</h3>
+        <p id="finBudgetAlertText" style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">Define tu tope mensual para recibir alertas tempranas de sobregiro.</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <input type="number" id="finBudgetLimitInput" class="form-input" placeholder="Tope mensual ($)" min="0" step="10000" style="width: 170px; padding: 0.5rem 0.8rem; font-size: 0.85rem;">
+        <button type="button" id="btnSaveBudgetLimit" class="btn-outline" style="padding: 0.55rem 1rem;">Fijar Tope</button>
+      </div>
+    </div>
+
+    <!-- Barra de Progreso del Presupuesto -->
+    <div style="width: 100%; height: 12px; background: var(--bg-color); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-card);">
+      <div id="finBudgetProgressBar" style="width: 0%; height: 100%; background: var(--primary-neon); transition: width 0.4s ease, background-color 0.3s ease;"></div>
+    </div>
+  </div>
+
+  <!-- Fila 3: Contenedor Principal (Registro + Analítica y Libro Mayor) -->
+  <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+    
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE MOVIMIENTO Y PLANTILLAS DE PAGOS FIJOS -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+      
+      <!-- Formulario de Registro -->
+      <form id="financeTxForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Movimiento</h3>
+
+        <!-- Selector Tipo: Gasto / Ingreso -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem;">
+          <button type="button" class="btn-outline tx-type-btn active" data-type="gasto" style="justify-content: center; padding: 0.65rem; border-color: var(--danger-color); color: var(--danger-color); font-weight: 700;">
+            ↓ Egreso / Gasto
+          </button>
+          <button type="button" class="btn-outline tx-type-btn" data-type="ingreso" style="justify-content: center; padding: 0.65rem; font-weight: 700;">
+            ↑ Ingreso
+          </button>
+        </div>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="txTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto o Entidad</label>
+          <input type="text" id="txTitleInput" class="form-input" placeholder="Ej. Recibo de Luz, Nómina, Mercado..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1.2;">
+            <label for="txAmountInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Monto ($)</label>
+            <input type="number" id="txAmountInput" class="form-input" placeholder="0.00" min="0.01" step="0.01" required style="padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 700;">
+          </div>
+          <div style="flex: 1;">
+            <label for="txDateInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha</label>
+            <input type="date" id="txDateInput" class="form-input" required style="padding: 0.65rem 0.6rem; font-size: 0.82rem;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.9rem;">
+          <label for="txCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría Presupuestal</label>
+          <select id="txCategorySelect" class="form-input" style="padding: 0.65rem; font-size: 0.86rem; cursor: pointer;">
+            <option value="Servicios">⚡ Servicios Fijos (Luz, Agua, Red)</option>
+            <option value="Hogar">🏠 Vivienda / Arriendo / Mantenimiento</option>
+            <option value="Alimentación">🛒 Alimentación y Despensa</option>
+            <option value="Transporte">🚗 Transporte y Movilidad</option>
+            <option value="Salud">💊 Salud y Bienestar</option>
+            <option value="Deudas">💳 Créditos y Obligaciones</option>
+            <option value="Ahorro">🏦 Ahorro e Inversión</option>
+            <option value="Salario">💼 Salario / Ingreso Principal</option>
+            <option value="Otros">📦 Otros Movimientos</option>
+          </select>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1.1rem;">
+          <input type="checkbox" id="txRecurringCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+          Es un pago o ingreso fijo mensual
+        </label>
+
+        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">
+          Guardar en Libro Mayor
+        </button>
+      </form>
+
+      <!-- Plantillas Rápidas de Servicios Domésticos (1 Clic) -->
+      <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem;">⚡ Autocompletar Pago Fijo</h4>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem;">Haz clic para cargar los datos en el formulario:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Servicio de Energía Eléctrica" data-cat="Servicios">💡 Energía</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Acueducto y Alcantarillado" data-cat="Servicios">💧 Agua</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Internet Fibra Óptica" data-cat="Servicios">🌐 Internet</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Gas Natural Domiciliario" data-cat="Servicios">🔥 Gas</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Arriendo / Administración" data-cat="Hogar">🏢 Vivienda</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: DISTRIBUCIÓN POR CATEGORÍAS Y LIBRO MAYOR -->
+    <div class="settings-content" style="padding: 2.2rem; display: flex; flex-direction: column; gap: 2rem;">
+      
+      <!-- Bloque Superior: Distribución Analítica de Gastos por Categoría -->
+      <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.5rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Distribución de Gastos por Categoría</h3>
+        <div id="finCategoryBars" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra gastos para visualizar la estructura porcentual de tus egresos.</p>
+        </div>
+      </div>
+
+      <!-- Bloque Inferior: Libro Mayor de Movimientos -->
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <button type="button" class="btn-outline fin-list-filter active" data-filter="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="ingreso">↑ Ingresos</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="gasto">↓ Gastos</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="recurring">🔄 Fijos Mensuales</button>
+          </div>
+
+          <input type="search" id="finSearchInput" class="form-input" placeholder="Buscar concepto o categoría..." style="max-width: 240px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+        </div>
+
+        <!-- Lista de Transacciones -->
+        <div id="finTransactionsList" style="display: flex; flex-direction: column; gap: 0.7rem; max-height: 460px; overflow-y: auto;">
+          <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Cargando movimientos financieros...</p>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,124 @@
+<!-- public/views/family-board.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera del Módulo -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Tablero Compartido</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Centro de comunicación visual, avisos fijados y agenda de eventos en casa</p>
+      </div>
+    </div>
+
+    <!-- Contadores Rápidos del Tablero -->
+    <div style="display: flex; align-items: center; gap: 1.2rem; background: var(--panel-bg); padding: 0.7rem 1.4rem; border-radius: 16px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+      <div style="padding-right: 1rem; border-right: 1px solid var(--border-card);">
+        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Fijados</div>
+        <span id="boardPinnedCount" style="font-size: 1.3rem; font-weight: 800; color: var(--primary-neon);">0</span>
+      </div>
+      <div>
+        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Activos</div>
+        <span id="boardTotalCount" style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor Principal: Creador de Notas + Mural Interactivo -->
+  <div class="settings-container" style="grid-template-columns: 340px 1fr;">
+    
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE PUBLICACIÓN Y PRÓXIMOS EVENTOS -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+      
+      <!-- Formulario de Nueva Publicación -->
+      <form id="boardPostForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Publicar en el Mural</h3>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="postTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Título o Destinatario</label>
+          <input type="text" id="postTitleInput" class="form-input" placeholder="Ej. Reunión familiar, Para todos..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+        </div>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="postContentInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Mensaje o Detalle</label>
+          <textarea id="postContentInput" class="form-input" rows="3" placeholder="Escribe la nota, tarea o recordatorio..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1;">
+            <label for="postCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
+            <select id="postCategorySelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+              <option value="nota">📌 Nota Visual</option>
+              <option value="alerta">🚨 Alerta Urgente</option>
+              <option value="evento">📅 Evento / Cita</option>
+              <option value="tarea">✅ Tarea Asignada</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label for="postEventDate" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha (Opcional)</label>
+            <input type="date" id="postEventDate" class="form-input" style="padding: 0.6rem; font-size: 0.82rem;">
+          </div>
+        </div>
+
+        <!-- Selector de Etiqueta de Color -->
+        <div style="margin-bottom: 1rem;">
+          <span style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Color de Tarjeta</span>
+          <div id="postColorPicker" style="display: flex; gap: 10px;">
+            <button type="button" class="color-tag-btn active" data-color="#10b981" style="width: 26px; height: 26px; border-radius: 50%; background: #10b981; border: 2px solid var(--text-main); cursor: pointer;"></button>
+            <button type="button" class="color-tag-btn" data-color="#0ea5e9" style="width: 26px; height: 26px; border-radius: 50%; background: #0ea5e9; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="color-tag-btn" data-color="#a855f7" style="width: 26px; height: 26px; border-radius: 50%; background: #a855f7; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="color-tag-btn" data-color="#f59e0b" style="width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="color-tag-btn" data-color="#ef4444" style="width: 26px; height: 26px; border-radius: 50%; background: #ef4444; border: 2px solid transparent; cursor: pointer;"></button>
+          </div>
+        </div>
+
+        <!-- Opción de Fijar Aviso -->
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1rem;">
+          <input type="checkbox" id="postPinnedCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+          Fijar como aviso destacado arriba
+        </label>
+
+        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+          Publicar en Tablero
+        </button>
+      </form>
+
+      <!-- Mini Agenda de Próximos Eventos -->
+      <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
+        <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.8rem;">📅 Próximos Eventos</h4>
+        <div id="upcomingEventsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
+          <p style="color: var(--text-muted); font-size: 0.82rem;">Sin eventos programados.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: MURAL DE NOTAS Y FILTROS -->
+    <div class="settings-content" style="padding: 2.2rem;">
+      
+      <!-- Barra de Filtros y Buscador Rápido -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.8rem; flex-wrap: wrap; padding-bottom: 1.2rem; border-bottom: 1px solid var(--border-card);">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-outline board-filter-btn active" data-category="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
+          <button type="button" class="btn-outline board-filter-btn" data-category="nota">📌 Notas</button>
+          <button type="button" class="btn-outline board-filter-btn" data-category="alerta">🚨 Alertas</button>
+          <button type="button" class="btn-outline board-filter-btn" data-category="evento">📅 Eventos</button>
+          <button type="button" class="btn-outline board-filter-btn" data-category="tarea">✅ Tareas</button>
+        </div>
+
+        <input type="search" id="boardSearchInput" class="form-input" placeholder="Filtrar por texto..." style="max-width: 220px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+      </div>
+
+      <!-- Cuadrícula de Tarjetas del Tablero -->
+      <div id="boardPostsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; grid-column: 1 / -1; padding: 2rem 0;">Cargando publicaciones del tablero...</p>
+      </div>
+
+    </div>
+
+  </div>
+</div>

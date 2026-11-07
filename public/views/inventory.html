@@ -1,0 +1,160 @@
+<!-- public/views/inventory.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera del Módulo -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Despensa Inteligente</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Control de suministros, alertas de caducidad y lista de compras automatizada</p>
+      </div>
+    </div>
+
+    <!-- Acción Rápida: Copiar Lista de Compras -->
+    <button type="button" id="btnCopyShoppingList" class="btn-outline" style="padding: 0.65rem 1.2rem; background: var(--panel-bg);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      Copiar Lista de Compras
+    </button>
+  </div>
+
+  <!-- Fila 1: 4 Tarjetas KPI de Inventario -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
+    
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Suministros</span>
+      <h2 id="invTotalItems" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--text-main);">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Productos registrados</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Stock Crítico</span>
+      <h2 id="invLowStockCount" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color);">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">En o por debajo del mínimo</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Riesgo Caducidad</span>
+      <h2 id="invExpiringCount" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--danger-color);">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Vencen en ≤ 7 días</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Por Comprar</span>
+      <h2 id="invShoppingCount" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--primary-neon);">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">En lista de supermercado</span>
+    </div>
+
+  </div>
+
+  <!-- Fila 2: Contenedor Principal (Registro + Lista de Compras / Catálogo de Despensa) -->
+  <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+    
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE ARTÍCULO Y LISTA DE COMPRAS RÁPIDA -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+      
+      <!-- Formulario de Nuevo Artículo -->
+      <form id="inventoryItemForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Producto</h3>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="invNameInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Nombre del Producto</label>
+          <input type="text" id="invNameInput" class="form-input" placeholder="Ej. Café en grano, Leche, Detergente..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1.1;">
+            <label for="invCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
+            <select id="invCategorySelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+              <option value="Alimentos">🍎 Alimentos y Frescos</option>
+              <option value="Despensa">🥫 Granos y Enlatados</option>
+              <option value="Limpieza">🧼 Aseo y Limpieza</option>
+              <option value="Higiene">🧴 Higiene Personal</option>
+              <option value="Herramientas">🔋 Ferretería / Repuestos</option>
+            </select>
+          </div>
+          <div style="flex: 0.9;">
+            <label for="invUnitSelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Unidad</label>
+            <select id="invUnitSelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+              <option value="unidades">Unidades</option>
+              <option value="kg">Kilogramos (kg)</option>
+              <option value="litros">Litros (L)</option>
+              <option value="paquetes">Paquetes</option>
+              <option value="gramos">Gramos (g)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1;">
+            <label for="invQtyInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Cantidad Actual</label>
+            <input type="number" id="invQtyInput" class="form-input" value="1" min="0" step="0.5" required style="padding: 0.65rem 0.8rem; font-size: 0.9rem; font-weight: 700;">
+          </div>
+          <div style="flex: 1;">
+            <label for="invMinStockInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Alerta Mínimo</label>
+            <input type="number" id="invMinStockInput" class="form-input" value="1" min="0" step="0.5" required style="padding: 0.65rem 0.8rem; font-size: 0.9rem;">
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.9rem;">
+          <label for="invExpiryInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha de Vencimiento (Opcional)</label>
+          <input type="date" id="invExpiryInput" class="form-input" style="padding: 0.6rem 0.8rem; font-size: 0.84rem;">
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1rem;">
+          <input type="checkbox" id="invShoppingCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+          Añadir directamente a Lista de Compras
+        </label>
+
+        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+          Guardar en Despensa
+        </button>
+      </form>
+
+      <!-- Panel Rápido: Lista de Supermercado -->
+      <div style="background: var(--panel-bg); padding: 1.3rem; border-radius: 18px; border: 1px solid var(--border-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--primary-neon); text-transform: uppercase; margin: 0;">🛒 Lista de Compras</h4>
+          <span id="shoppingSideBadge" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">0 ítems</span>
+        </div>
+        <div id="shoppingListSideContainer" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 250px; overflow-y: auto;">
+          <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Todo abastecido. No hay compras urgentes.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: INVENTARIO INTERACTIVO Y FILTROS -->
+    <div class="settings-content" style="padding: 2.2rem;">
+      
+      <!-- Barra de Filtros y Búsqueda -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1.2rem; border-bottom: 1px solid var(--border-card);">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" class="btn-outline inv-filter-btn active" data-filter="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="Alimentos">🍎 Alimentos</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="Despensa">🥫 Despensa</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="Limpieza">🧼 Limpieza</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="Higiene">🧴 Higiene</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="low">⚠️ Stock Bajo</button>
+          <button type="button" class="btn-outline inv-filter-btn" data-filter="expiring">⏳ Por Vencer</button>
+        </div>
+
+        <input type="search" id="invSearchInput" class="form-input" placeholder="Buscar producto..." style="max-width: 220px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+      </div>
+
+      <!-- Lista de Tarjetas / Filas de Inventario -->
+      <div id="inventoryItemsContainer" style="display: flex; flex-direction: column; gap: 0.8rem;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Sincronizando despensa con Supabase...</p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
