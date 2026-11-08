@@ -7,6 +7,21 @@ let currentUser = null;
 let allHabits = [];
 let allLogs = [];
 
+// Estado persistente del Temporizador de Enfoque Absoluto (sobrevive cambios de vista)
+let pomoInterval = null;
+let pomoRemainingSec = 25 * 60;
+let pomoSelectedMin = 25;
+let isPomoRunning = false;
+
+function escapeHTML(str = '') {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export async function initHabits() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -25,10 +40,10 @@ export async function initHabits() {
     }
 
     bindHabitEvents();
+    initFocusTimerUI();
     await loadHabitsAndLogs();
 }
 
-// Genera fecha local YYYY-MM-DD sin desfase de zona horaria
 function toLocalISODate(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -36,7 +51,6 @@ function toLocalISODate(dateObj) {
     return `${y}-${m}-${d}`;
 }
 
-// Devuelve arreglo con los últimos 7 días (de hace 6 días hasta hoy)
 function getLast7Days() {
     const days = [];
     const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -54,7 +68,6 @@ function getLast7Days() {
     return days;
 }
 
-// Calcula racha consecutiva hacia atrás desde hoy (o ayer si hoy aún no se ha marcado)
 function calculateStreak(habitId) {
     const habitDates = new Set(
         allLogs.filter(l => l.habit_id === habitId).map(l => l.completed_date)
@@ -67,7 +80,6 @@ function calculateStreak(habitId) {
 
     const todayISO = toLocalISODate(cursor);
     if (!habitDates.has(todayISO)) {
-        // Verificar si ayer fue completado para mantener la racha viva
         cursor.setDate(cursor.getDate() - 1);
         if (!habitDates.has(toLocalISODate(cursor))) {
             return 0;
@@ -94,11 +106,25 @@ async function loadHabitsAndLogs() {
         allHabits = habitsRes.data || [];
         allLogs = logsRes.data || [];
 
+        populateFocusHabitSelector();
         updateKPIs();
         renderHabitsMatrix();
     } catch (error) {
         console.error('Error cargando Rastreador de Hábitos:', error);
         showToast('Error al sincronizar hábitos', 'error');
+    }
+}
+
+function populateFocusHabitSelector() {
+    const selectEl = document.getElementById('pomoHabitSelect');
+    if (!selectEl) return;
+
+    const prevValue = selectEl.value;
+    selectEl.innerHTML = `<option value="">-- Solo temporizador libre --</option>` +
+        allHabits.map(h => `<option value="${escapeHTML(h.id)}">🎯 ${escapeHTML(h.title)}</option>`).join('');
+
+    if (prevValue && allHabits.some(h => h.id === prevValue)) {
+        selectEl.value = prevValue;
     }
 }
 
@@ -110,7 +136,6 @@ function updateKPIs() {
         allLogs.some(l => l.habit_id === h.id && l.completed_date === todayISO)
     ).length;
 
-    // Eficiencia de los últimos 7 días
     let totalTargetWeekly = 0;
     let totalDoneWeekly = 0;
     let maxStreak = 0;
@@ -134,7 +159,7 @@ function updateKPIs() {
     if (todayEl) todayEl.textContent = `${completedTodayCount} / ${allHabits.length}`;
     if (effEl) {
         effEl.textContent = `${efficiency}%`;
-        effEl.style.color = efficiency >= 75 ? 'var(--primary-neon)' : efficiency >= 45 ? 'var(--warning-color)' : 'var(--danger-color)';
+        effEl.style.color = efficiency >= 75 ? 'var(--primary-neon)' : efficiency >= 45 ? 'var(--warning-color, #f59e0b)' : 'var(--danger-color, #ef4444)';
     }
     if (streakEl) streakEl.textContent = `${maxStreak} día(s)`;
     if (totalLogsEl) totalLogsEl.textContent = allLogs.length;
@@ -206,7 +231,7 @@ function renderHabitsMatrix() {
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                 <div>
                     <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0;">${habit.title}</h4>
+                        <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0;">${escapeHTML(habit.title)}</h4>
                         <span style="font-size: 0.75rem; padding: 2px 9px; border-radius: 10px; background: var(--icon-bg); color: var(--primary-neon); font-weight: 700;">
                             🔥 Racha: ${streak}d
                         </span>
@@ -214,64 +239,52 @@ function renderHabitsMatrix() {
                             Meta: ${doneLast7}/${target} días (${pct}%)
                         </span>
                     </div>
-                    ${habit.description ? `<p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">${habit.description}</p>` : ''}
+                    ${habit.description ? `<p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">${escapeHTML(habit.description)}</p>` : ''}
                 </div>
 
-                <button type="button" class="btn-outline btn-delete-habit" title="Eliminar hábito" style="border-color: transparent; color: var(--danger-color); padding: 4px 8px;">
-                    ✕
-                </button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button type="button" class="btn-outline btn-focus-this" title="Cargar en Enfoque Absoluto" style="padding: 4px 8px; font-size: 0.75rem;">
+                        🎯 Enfoque
+                    </button>
+                    <button type="button" class="btn-outline btn-delete-habit" title="Eliminar hábito" style="border-color: transparent; color: var(--danger-color, #ef4444); padding: 4px 8px;">
+                        ✕
+                    </button>
+                </div>
             </div>
 
-            <!-- Fila de 7 Botones Diarios -->
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 ${daysHTML}
             </div>
 
-            <!-- Barra de Progreso Semanal del Hábito -->
             <div style="width: 100%; height: 6px; background: var(--panel-bg); border-radius: 6px; overflow: hidden;">
                 <div style="width: ${pct}%; height: 100%; background: var(--primary-neon); transition: width 0.3s ease;"></div>
             </div>
         `;
 
-        // Eventos para marcar / desmarcar cualquiera de los 7 días
+        card.querySelector('.btn-focus-this').addEventListener('click', () => {
+            const selectEl = document.getElementById('pomoHabitSelect');
+            if (selectEl) {
+                selectEl.value = habit.id;
+                selectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showToast(`"${habit.title}" vinculado al temporizador de Enfoque.`, 'info');
+            }
+        });
+
         card.querySelectorAll('.day-toggle-btn').forEach(btn => {
             btn.addEventListener('click', async () => {
+                btn.disabled = true;
                 const targetDate = btn.dataset.date;
-                const existingLog = allLogs.find(l => l.habit_id === habit.id && l.completed_date === targetDate);
-
-                if (existingLog) {
-                    const { error } = await supabase.from('habit_logs').delete().eq('id', existingLog.id);
-                    if (!error) {
-                        allLogs = allLogs.filter(l => l.id !== existingLog.id);
-                    }
-                } else {
-                    const { data, error } = await supabase.from('habit_logs').insert({
-                        habit_id: habit.id,
-                        user_id: currentUser.id,
-                        completed_date: targetDate
-                    }).select().single();
-
-                    if (!error && data) {
-                        allLogs.push(data);
-                    }
-                }
-
-                // Sincronizar current_streak en la tabla habits
-                const newStreak = calculateStreak(habit.id);
-                habit.current_streak = newStreak;
-                await supabase.from('habits').update({ current_streak: newStreak }).eq('id', habit.id);
-
-                updateKPIs();
-                renderHabitsMatrix();
+                await toggleHabitDate(habit, targetDate);
+                btn.disabled = false;
             });
         });
 
-        // Eliminar hábito
         card.querySelector('.btn-delete-habit').addEventListener('click', async () => {
             const { error } = await supabase.from('habits').delete().eq('id', habit.id);
             if (!error) {
                 allHabits = allHabits.filter(h => h.id !== habit.id);
                 allLogs = allLogs.filter(l => l.habit_id !== habit.id);
+                populateFocusHabitSelector();
                 updateKPIs();
                 renderHabitsMatrix();
                 showToast('Hábito eliminado', 'info');
@@ -282,8 +295,149 @@ function renderHabitsMatrix() {
     });
 }
 
+async function toggleHabitDate(habit, targetDate, forceCheck = false) {
+    const existingLog = allLogs.find(l => l.habit_id === habit.id && l.completed_date === targetDate);
+
+    if (existingLog) {
+        if (forceCheck) return; // Si viene del Pomodoro y ya estaba marcado hoy, no desmarcar
+        const { error } = await supabase.from('habit_logs').delete().eq('id', existingLog.id);
+        if (!error) {
+            allLogs = allLogs.filter(l => l.id !== existingLog.id);
+        }
+    } else {
+        const { data, error } = await supabase.from('habit_logs').insert({
+            habit_id: habit.id,
+            user_id: currentUser.id,
+            completed_date: targetDate
+        }).select().single();
+
+        if (!error && data) {
+            allLogs.push(data);
+        }
+    }
+
+    const newStreak = calculateStreak(habit.id);
+    habit.current_streak = newStreak;
+    await supabase.from('habits').update({ current_streak: newStreak }).eq('id', habit.id);
+
+    updateKPIs();
+    renderHabitsMatrix();
+}
+
+// TEMPORIZADOR DE ENFOQUE ABSOLUTO (POMODORO + BLOQUEO DND)
+function playCompletionChime() {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(528, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.45);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.6);
+    } catch {}
+}
+
+function initFocusTimerUI() {
+    const displayEl = document.getElementById('pomoTimerDisplay');
+    const badgeEl = document.getElementById('pomoStatusBadge');
+    const btnStart = document.getElementById('btnPomoStart');
+    const btnReset = document.getElementById('btnPomoReset');
+    const dndCheck = document.getElementById('pomoDndCheck');
+    const modeBtns = document.querySelectorAll('.pomo-mode-btn');
+
+    const formatTime = (sec) => {
+        const m = String(Math.floor(sec / 60)).padStart(2, '0');
+        const s = String(sec % 60).padStart(2, '0');
+        return `${m}:${s}`;
+    };
+
+    const syncUI = () => {
+        const dEl = document.getElementById('pomoTimerDisplay');
+        const bEl = document.getElementById('pomoStatusBadge');
+        const sBtn = document.getElementById('btnPomoStart');
+        if (dEl) dEl.textContent = formatTime(pomoRemainingSec);
+        if (bEl) {
+            bEl.textContent = isPomoRunning ? '🔒 Enfoque Activo' : 'En espera';
+            bEl.style.color = isPomoRunning ? 'var(--primary-neon)' : 'var(--text-muted)';
+        }
+        if (sBtn) {
+            sBtn.textContent = isPomoRunning ? 'Pausar' : 'Iniciar';
+        }
+    };
+
+    syncUI();
+
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isPomoRunning) return;
+            modeBtns.forEach(b => {
+                b.style.borderColor = 'var(--border-card)';
+                b.style.color = 'var(--text-muted)';
+            });
+            btn.style.borderColor = 'var(--primary-neon)';
+            btn.style.color = 'var(--primary-neon)';
+            pomoSelectedMin = parseInt(btn.dataset.minutes, 10) || 25;
+            pomoRemainingSec = pomoSelectedMin * 60;
+            syncUI();
+        });
+    });
+
+    if (btnStart) {
+        btnStart.addEventListener('click', () => {
+            isPomoRunning = !isPomoRunning;
+            window.NGN_FOCUS_LOCK = isPomoRunning && (dndCheck ? dndCheck.checked : true);
+
+            if (isPomoRunning) {
+                if (pomoInterval) clearInterval(pomoInterval);
+                pomoInterval = setInterval(async () => {
+                    pomoRemainingSec--;
+                    syncUI();
+
+                    if (pomoRemainingSec <= 0) {
+                        clearInterval(pomoInterval);
+                        isPomoRunning = false;
+                        window.NGN_FOCUS_LOCK = false;
+                        pomoRemainingSec = pomoSelectedMin * 60;
+                        playCompletionChime();
+                        syncUI();
+
+                        const selectEl = document.getElementById('pomoHabitSelect');
+                        const selectedHabitId = selectEl?.value;
+                        if (selectedHabitId) {
+                            const habit = allHabits.find(h => h.id === selectedHabitId);
+                            if (habit) {
+                                await toggleHabitDate(habit, toLocalISODate(new Date()), true);
+                                showToast(`¡Sesión completada! "${habit.title}" marcado hoy.`, 'success');
+                                return;
+                            }
+                        }
+                        showToast('¡Sesión de Enfoque Absoluto completada!', 'success');
+                    }
+                }, 1000);
+            } else {
+                clearInterval(pomoInterval);
+            }
+            syncUI();
+        });
+    }
+
+    if (btnReset) {
+        btnReset.addEventListener('click', () => {
+            if (pomoInterval) clearInterval(pomoInterval);
+            isPomoRunning = false;
+            window.NGN_FOCUS_LOCK = false;
+            pomoRemainingSec = pomoSelectedMin * 60;
+            syncUI();
+        });
+    }
+}
+
 function bindHabitEvents() {
-    // 1. Crear Nuevo Hábito
     const form = document.getElementById('habitCreateForm');
     if (form) {
         form.addEventListener('submit', async (e) => {
@@ -314,7 +468,6 @@ function bindHabitEvents() {
         });
     }
 
-    // 2. Plantillas Rápidas de 1 Clic
     document.querySelectorAll('.quick-habit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const titleInput = document.getElementById('habTitleInput');

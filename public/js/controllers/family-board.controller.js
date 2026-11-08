@@ -15,6 +15,16 @@ let allPosts = [];
 let activeCategory = 'all';
 let searchQuery = '';
 let selectedColor = '#10b981';
+let boardRealtimeChannel = null;
+
+function escapeHTML(str = '') {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
 
 export async function initFamilyBoard() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,6 +37,26 @@ export async function initFamilyBoard() {
 
     bindBoardEvents();
     await loadBoardPosts();
+    subscribeToRealtimeBoard();
+}
+
+function subscribeToRealtimeBoard() {
+    if (boardRealtimeChannel) {
+        supabase.removeChannel(boardRealtimeChannel);
+    }
+
+    boardRealtimeChannel = supabase
+        .channel('ngn-family-board-sync')
+        .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'family_board_posts' },
+            () => {
+                if (document.getElementById('boardPostsGrid')) {
+                    loadBoardPosts();
+                }
+            }
+        )
+        .subscribe();
 }
 
 async function loadBoardPosts() {
@@ -72,9 +102,9 @@ function updateCountersAndAgenda() {
     upcomingList.innerHTML = events.map(ev => {
         const dateStr = new Date(ev.event_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
         return `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-color); border-radius: 10px; border-left: 3px solid ${ev.color_tag || 'var(--primary-neon)'};">
-                <span style="font-size: 0.83rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${ev.title}</span>
-                <span style="font-size: 0.75rem; color: var(--primary-neon); font-weight: 700;">${dateStr}</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-color); border-radius: 10px; border-left: 3px solid ${escapeHTML(ev.color_tag || 'var(--primary-neon)')};">
+                <span style="font-size: 0.83rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px;">${escapeHTML(ev.title)}</span>
+                <span style="font-size: 0.75rem; color: var(--primary-neon); font-weight: 700;">${escapeHTML(dateStr)}</span>
             </div>
         `;
     }).join('');
@@ -104,7 +134,7 @@ function renderBoardGrid() {
         grid.innerHTML = `
             <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 1rem; border: 1px dashed var(--border-card); border-radius: 18px; color: var(--text-muted);">
                 <p style="font-size: 0.98rem; margin-bottom: 0.3rem;">No hay notas ni avisos en esta vista.</p>
-                <span style="font-size: 0.82rem;">Usa el panel izquierdo para publicar una nota visual, tarea o evento en el mural.</span>
+                <span style="font-size: 0.82rem;">Usa el panel izquierdo o envía una tarea desde Zonas del Hogar.</span>
             </div>
         `;
         return;
@@ -116,7 +146,7 @@ function renderBoardGrid() {
         const createdDate = new Date(post.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
         const eventBadge = post.event_date
             ? `<div style="margin-top: 10px; display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; padding: 3px 9px; border-radius: 8px; background: var(--panel-bg); border: 1px solid var(--border-card); color: var(--text-main);">
-                 📅 Programado: <strong>${new Date(post.event_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                 📅 Programado: <strong>${escapeHTML(new Date(post.event_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' }))}</strong>
                </div>`
             : '';
 
@@ -138,29 +168,28 @@ function renderBoardGrid() {
         card.innerHTML = `
             <div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
-                    <span style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: ${accent}; display: flex; align-items: center; gap: 4px;">
+                    <span style="font-size: 0.74rem; font-weight: 700; text-transform: uppercase; color: ${escapeHTML(accent)}; display: flex; align-items: center; gap: 4px;">
                         ${catInfo.icon} ${catInfo.label}
                     </span>
                     <div style="display: flex; align-items: center; gap: 6px;">
                         <button type="button" class="btn-pin-post" title="${post.pinned ? 'Desfijar' : 'Fijar arriba'}" style="background: transparent; border: none; cursor: pointer; font-size: 0.95rem; opacity: ${post.pinned ? '1' : '0.35'};">
                             📌
                         </button>
-                        <button type="button" class="btn-delete-post" title="Eliminar publicación" style="background: transparent; border: none; cursor: pointer; color: var(--danger-color); font-size: 0.9rem;">
+                        <button type="button" class="btn-delete-post" title="Eliminar publicación" style="background: transparent; border: none; cursor: pointer; color: var(--danger-color, #ef4444); font-size: 0.9rem;">
                             ✕
                         </button>
                     </div>
                 </div>
-                <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem;">${post.title}</h4>
-                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; white-space: pre-wrap;">${post.content}</p>
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin-bottom: 0.4rem;">${escapeHTML(post.title)}</h4>
+                <p style="font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; white-space: pre-wrap;">${escapeHTML(post.content)}</p>
                 ${eventBadge}
             </div>
             <div style="margin-top: 1.2rem; padding-top: 0.7rem; border-top: 1px solid var(--border-card); display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted);">
-                <span>Publicado: ${createdDate}</span>
-                ${post.pinned ? `<span style="color: ${accent}; font-weight: 700;">★ Fijado</span>` : ''}
+                <span>Publicado: ${escapeHTML(createdDate)}</span>
+                ${post.pinned ? `<span style="color: ${escapeHTML(accent)}; font-weight: 700;">★ Fijado</span>` : ''}
             </div>
         `;
 
-        // Fijar / Desfijar publicación
         card.querySelector('.btn-pin-post').addEventListener('click', async () => {
             const newPinned = !post.pinned;
             const { error } = await supabase
@@ -174,7 +203,6 @@ function renderBoardGrid() {
             }
         });
 
-        // Eliminar publicación
         card.querySelector('.btn-delete-post').addEventListener('click', async () => {
             const { error } = await supabase
                 .from('family_board_posts')
@@ -194,7 +222,6 @@ function renderBoardGrid() {
 }
 
 function bindBoardEvents() {
-    // 1. Selector de color de tarjeta
     const colorBtns = document.querySelectorAll('.color-tag-btn');
     colorBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -204,7 +231,6 @@ function bindBoardEvents() {
         });
     });
 
-    // 2. Publicar nueva nota / alerta / evento
     const postForm = document.getElementById('boardPostForm');
     if (postForm) {
         postForm.addEventListener('submit', async (e) => {
@@ -244,7 +270,6 @@ function bindBoardEvents() {
         });
     }
 
-    // 3. Filtros por categoría
     document.querySelectorAll('.board-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.board-filter-btn').forEach(b => {
@@ -258,7 +283,6 @@ function bindBoardEvents() {
         });
     });
 
-    // 4. Búsqueda instantánea por texto
     const searchInput = document.getElementById('boardSearchInput');
     if (searchInput) {
         searchInput.addEventListener('input', (e) => {

@@ -10,6 +10,7 @@ import { initFinance } from '../controllers/finance.controller.js';
 import { initInventory } from '../controllers/inventory.controller.js';
 import { initHabits } from '../controllers/habits.controller.js';
 import { showToast } from '../ui/toast.js';
+import { initNexusCore } from '../controllers/nexus-core.controller.js';
 
 function initPublicContact() {
     const form = document.getElementById('publicContactForm');
@@ -24,6 +25,7 @@ function initPublicContact() {
 
 // Mapeo exacto de rutas a sus controladores correspondientes
 const viewControllers = {
+    '/views/nexus-core.html': initNexusCore,
     '/views/dashboard.html': initDashboard,
     '/views/settings.html': initSettings,
     '/views/home-hub.html': initHomeHub,

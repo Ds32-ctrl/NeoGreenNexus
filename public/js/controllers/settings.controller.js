@@ -163,6 +163,18 @@ export async function initSettings() {
         });
 
         if (error) throw error;
+        const { data: { user: activeUser } } = await supabase.auth.getUser();
+        if (activeUser) {
+          await supabase.from('profiles').upsert({
+            id: activeUser.id,
+            email: activeUser.email,
+            full_name: cleanName || 'Usuario NGN',
+            nickname: cleanNick || null,
+            avatar_url: currentSelectedAvatar,
+            recovery_email: cleanRecovery || null,
+            updated_at: new Date().toISOString()
+          });
+        }
 
         // Actualizar mini-perfil en la barra si está presente
         const miniDashName = document.getElementById('dashName');

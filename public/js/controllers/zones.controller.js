@@ -19,6 +19,15 @@ let allTasks = [];
 let selectedZoneId = null;
 let currentFilter = 'all';
 
+function escapeHTML(str = '') {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export async function initZones() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -44,7 +53,6 @@ async function loadZonesAndTasks() {
         allZones = zonesRes.data || [];
         allTasks = tasksRes.data || [];
 
-        // Si no hay zona seleccionada o fue eliminada, seleccionar la primera disponible
         if (allZones.length > 0 && !allZones.some(z => z.id === selectedZoneId)) {
             selectedZoneId = allZones[0].id;
         } else if (allZones.length === 0) {
@@ -73,7 +81,7 @@ function updateGlobalHealth() {
 
     if (healthEl) {
         healthEl.textContent = `${percent}%`;
-        healthEl.style.color = percent >= 70 ? 'var(--primary-neon)' : percent >= 40 ? 'var(--warning-color)' : 'var(--danger-color)';
+        healthEl.style.color = percent >= 70 ? 'var(--primary-neon)' : percent >= 40 ? 'var(--warning-color, #f59e0b)' : 'var(--danger-color, #ef4444)';
     }
     if (summaryEl) {
         summaryEl.textContent = `${completed} de ${total} tareas al día`;
@@ -106,9 +114,9 @@ function renderZonesSidebar() {
         btn.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
                 <span style="font-size: 1.15rem;">${emoji}</span>
-                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${zone.name}</span>
+                <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(zone.name)}</span>
             </div>
-            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: ${pendingCount > 0 ? 'rgba(245, 158, 11, 0.15)' : 'var(--icon-bg)'}; color: ${pendingCount > 0 ? 'var(--warning-color)' : 'var(--primary-neon)'};">
+            <span style="font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: ${pendingCount > 0 ? 'rgba(245, 158, 11, 0.15)' : 'var(--icon-bg)'}; color: ${pendingCount > 0 ? 'var(--warning-color, #f59e0b)' : 'var(--primary-neon)'};">
                 ${pendingCount > 0 ? `${pendingCount} pend.` : 'Al día'}
             </span>
         `;
@@ -154,7 +162,6 @@ function renderActiveZonePanel() {
     if (createTaskForm) createTaskForm.style.display = 'flex';
     if (filterBar) filterBar.style.display = 'flex';
 
-    // Filtrar tareas de esta zona
     let zoneTasks = allTasks.filter(t => t.zone_id === activeZone.id);
     if (currentFilter === 'pending') zoneTasks = zoneTasks.filter(t => !t.is_completed);
     if (currentFilter === 'completed') zoneTasks = zoneTasks.filter(t => t.is_completed);
@@ -165,7 +172,7 @@ function renderActiveZonePanel() {
     if (zoneTasks.length === 0) {
         tasksList.innerHTML = `
             <div style="text-align: center; padding: 2.5rem 1rem; border: 1px dashed var(--border-card); border-radius: 16px; color: var(--text-muted);">
-                <p style="font-size: 0.95rem; margin-bottom: 0.3rem;">No hay tareas en esta vista para <strong>${activeZone.name}</strong>.</p>
+                <p style="font-size: 0.95rem; margin-bottom: 0.3rem;">No hay tareas en esta vista para <strong>${escapeHTML(activeZone.name)}</strong>.</p>
                 <span style="font-size: 0.8rem;">Usa el formulario superior para programar limpiezas, revisiones o inventario de herramientas.</span>
             </div>
         `;
@@ -177,29 +184,33 @@ function renderActiveZonePanel() {
         row.className = 'setting-row';
         row.style.marginBottom = '0';
         row.style.opacity = task.is_completed ? '0.65' : '1';
-        row.style.borderLeft = `4px solid ${task.is_completed ? 'var(--primary-neon)' : 'var(--warning-color)'}`;
+        row.style.borderLeft = `4px solid ${task.is_completed ? 'var(--primary-neon)' : 'var(--warning-color, #f59e0b)'}`;
 
-        const dueBadge = task.due_date ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;">📅 Vence: ${task.due_date}</span>` : '';
+        const dueBadge = task.due_date ? `<span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 8px;">📅 Vence: ${escapeHTML(task.due_date)}</span>` : '';
 
         row.innerHTML = `
             <div style="display: flex; align-items: center; gap: 14px; flex: 1;">
                 <input type="checkbox" class="task-check" ${task.is_completed ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--primary-neon); cursor: pointer;">
                 <div class="setting-info">
                     <h4 style="font-size: 0.98rem; text-decoration: ${task.is_completed ? 'line-through' : 'none'}; color: var(--text-main);">
-                        ${task.title}
+                        ${escapeHTML(task.title)}
                     </h4>
                     <p style="font-size: 0.8rem;">
-                        <span style="color: var(--primary-neon); font-weight: 600;">Frecuencia: ${task.frequency}</span>
+                        <span style="color: var(--primary-neon); font-weight: 600;">Frecuencia: ${escapeHTML(task.frequency)}</span>
                         ${dueBadge}
                     </p>
                 </div>
             </div>
-            <button type="button" class="btn-outline btn-remove-task" style="border-color: transparent; color: var(--danger-color);" title="Eliminar tarea">
-                ✕
-            </button>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="btn-outline btn-share-board" style="padding: 4px 9px; font-size: 0.75rem;" title="Publicar tarea en el Tablero Compartido">
+                    📌 Al Tablero
+                </button>
+                <button type="button" class="btn-outline btn-remove-task" style="border-color: transparent; color: var(--danger-color, #ef4444);" title="Eliminar tarea">
+                    ✕
+                </button>
+            </div>
         `;
 
-        // Evento Check / Uncheck
         const checkbox = row.querySelector('.task-check');
         checkbox.addEventListener('change', async () => {
             const newState = checkbox.checked;
@@ -214,7 +225,26 @@ function renderActiveZonePanel() {
             }
         });
 
-        // Evento Eliminar Tarea
+        // Puente Ecosistémico: Enviar tarea de Zona al Tablero Compartido
+        row.querySelector('.btn-share-board').addEventListener('click', async () => {
+            const eventDate = task.due_date ? new Date(task.due_date + 'T12:00:00').toISOString() : null;
+            const { error } = await supabase.from('family_board_posts').insert({
+                user_id: currentUser.id,
+                title: `Zona: ${activeZone.name}`,
+                content: `${task.title} (Frecuencia: ${task.frequency})`,
+                category: 'tarea',
+                color_tag: '#0ea5e9',
+                pinned: false,
+                event_date: eventDate
+            });
+
+            if (error) {
+                showToast('No se pudo publicar en el tablero: ' + error.message, 'error');
+            } else {
+                showToast(`Tarea publicada en el Tablero Compartido.`, 'success');
+            }
+        });
+
         row.querySelector('.btn-remove-task').addEventListener('click', async () => {
             const { error } = await supabase.from('zone_tasks').delete().eq('id', task.id);
             if (!error) {
@@ -231,7 +261,6 @@ function renderActiveZonePanel() {
 }
 
 function bindZoneEvents() {
-    // 1. Crear Nueva Zona
     const createZoneForm = document.getElementById('createZoneForm');
     if (createZoneForm) {
         createZoneForm.addEventListener('submit', async (e) => {
@@ -262,7 +291,6 @@ function bindZoneEvents() {
         });
     }
 
-    // 2. Eliminar Zona Activa
     const btnDeleteZone = document.getElementById('btnDeleteZone');
     if (btnDeleteZone) {
         btnDeleteZone.addEventListener('click', async () => {
@@ -281,7 +309,6 @@ function bindZoneEvents() {
         });
     }
 
-    // 3. Crear Nueva Tarea en la Zona Activa
     const createTaskForm = document.getElementById('createTaskForm');
     if (createTaskForm) {
         createTaskForm.addEventListener('submit', async (e) => {
@@ -315,7 +342,6 @@ function bindZoneEvents() {
         });
     }
 
-    // 4. Botones de Filtro (Todas / Pendientes / Completadas)
     document.querySelectorAll('.task-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.task-filter-btn').forEach(b => {

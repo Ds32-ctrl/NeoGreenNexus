@@ -11,7 +11,7 @@
       </button>
       <div>
         <h1 class="settings-title" style="margin: 0;">Rastreador de Hábitos</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Forja disciplina diaria, audita tu consistencia de 7 días y sostén tus rachas</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Forja disciplina diaria, audita tu consistencia de 7 días y activa el Modo Enfoque Absoluto</p>
       </div>
     </div>
 
@@ -33,13 +33,13 @@
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
       <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Eficiencia Semanal</span>
-      <h2 id="habWeeklyEfficiency" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--info-color);">0%</h2>
+      <h2 id="habWeeklyEfficiency" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--info-color, #0ea5e9);">0%</h2>
       <span style="font-size: 0.78rem; color: var(--text-muted);">Respecto a tu meta de 7 días</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
       <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Mejor Racha Activa</span>
-      <h2 id="habBestStreak" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color);">0 días</h2>
+      <h2 id="habBestStreak" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color, #f59e0b);">0 días</h2>
       <span style="font-size: 0.78rem; color: var(--text-muted);">Consistencia ininterrumpida</span>
     </div>
 
@@ -51,12 +51,54 @@
 
   </div>
 
-  <!-- Fila 2: Contenedor Principal (Creador de Hábito + Matriz de 7 Días) -->
-  <div class="settings-container" style="grid-template-columns: 340px 1fr;">
+  <!-- Fila 2: Contenedor Principal -->
+  <div class="settings-container" style="grid-template-columns: 350px 1fr;">
     
-    <!-- COLUMNA IZQUIERDA: FORMULARIO Y PLANTILLAS RÁPIDAS -->
-    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+    <!-- COLUMNA IZQUIERDA: MODO ENFOQUE ABSOLUTO + CREADOR + PLANTILLAS -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.6rem;">
       
+      <!-- Temporizador Pomodoro: Modo Enfoque Absoluto -->
+      <div id="pomoCard" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--primary-neon); box-shadow: var(--shadow-base);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+          <span style="font-size: 0.76rem; font-weight: 800; color: var(--primary-neon); text-transform: uppercase; letter-spacing: 0.5px;">🎯 Enfoque Absoluto</span>
+          <span id="pomoStatusBadge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 8px; background: var(--icon-bg); color: var(--text-muted);">En espera</span>
+        </div>
+
+        <div id="pomoTimerDisplay" style="font-size: 2.6rem; font-weight: 800; text-align: center; font-family: monospace; color: var(--text-main); margin: 0.4rem 0;">
+          25:00
+        </div>
+
+        <!-- Selector de Modo de Tiempo -->
+        <div style="display: flex; gap: 6px; justify-content: center; margin-bottom: 0.9rem;">
+          <button type="button" class="btn-outline pomo-mode-btn active" data-minutes="25" style="padding: 4px 10px; font-size: 0.76rem; border-color: var(--primary-neon); color: var(--primary-neon);">25m Focus</button>
+          <button type="button" class="btn-outline pomo-mode-btn" data-minutes="50" style="padding: 4px 10px; font-size: 0.76rem;">50m Deep</button>
+          <button type="button" class="btn-outline pomo-mode-btn" data-minutes="5" style="padding: 4px 10px; font-size: 0.76rem;">5m Pausa</button>
+        </div>
+
+        <!-- Vincular Sesión a un Hábito para Auto-Completar al terminar -->
+        <div style="margin-bottom: 0.8rem;">
+          <label for="pomoHabitSelect" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Hábito a acreditar al finalizar:</label>
+          <select id="pomoHabitSelect" class="form-input" style="padding: 0.55rem; font-size: 0.82rem; cursor: pointer;">
+            <option value="">-- Solo temporizador libre --</option>
+          </select>
+        </div>
+
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer; margin-bottom: 0.9rem;">
+          <input type="checkbox" id="pomoDndCheck" checked style="width: 15px; height: 15px; accent-color: var(--primary-neon);">
+          Silenciar notificaciones no críticas
+        </label>
+
+        <div style="display: flex; gap: 8px;">
+          <button type="button" id="btnPomoStart" class="btn-save" style="flex: 1; justify-content: center; margin: 0; padding: 0.65rem;">
+            Iniciar
+          </button>
+          <button type="button" id="btnPomoReset" class="btn-outline" style="padding: 0.65rem 1rem;">
+            Reiniciar
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de Nuevo Hábito -->
       <form id="habitCreateForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
         <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Nuevo Hábito</h3>
 
