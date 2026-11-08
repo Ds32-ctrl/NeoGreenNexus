@@ -1,3 +1,4 @@
+// public/js/controllers/finance.controller.js
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
@@ -21,6 +22,15 @@ let activeListFilter = 'all';
 let selectedMonth = 'all';
 let searchQuery = '';
 
+function escapeHTML(str = '') {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 export async function initFinance() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -28,7 +38,12 @@ export async function initFinance() {
         return;
     }
     currentUser = user;
+
+    // Reiniciar estados de filtros al montar la vista
     selectedTxType = 'gasto';
+    activeListFilter = 'all';
+    selectedMonth = 'all';
+    searchQuery = '';
 
     // Fecha de hoy por defecto en el formulario
     const dateInput = document.getElementById('txDateInput');
@@ -36,10 +51,14 @@ export async function initFinance() {
         dateInput.value = new Date().toISOString().split('T')[0];
     }
 
-    // Cargar tope presupuestal guardado localmente
+    // Sincronizar tope presupuestal desde user_metadata (nube) o localStorage
+    const cloudLimit = user.user_metadata?.budget_limit;
+    if (cloudLimit !== undefined) {
+        localStorage.setItem(`ngn_budget_limit_${user.id}`, String(cloudLimit));
+    }
     const savedLimit = localStorage.getItem(`ngn_budget_limit_${user.id}`);
     const limitInput = document.getElementById('finBudgetLimitInput');
-    if (limitInput && savedLimit) {
+    if (limitInput && savedLimit && Number(savedLimit) > 0) {
         limitInput.value = savedLimit;
     }
 
@@ -62,7 +81,7 @@ async function loadFinanceTransactions() {
         recalculateAndRender();
     } catch (error) {
         console.error('Error cargando Flujo Financiero:', error);
-        showToast('No se pudieron cargar las transacciones', 'error');
+        showToast('No se pudieron cargar las transacciones.', 'error');
     }
 }
 
@@ -119,7 +138,7 @@ function recalculateAndRender() {
 
     if (netEl) {
         netEl.textContent = formatCOP(netBalance);
-        netEl.style.color = netBalance >= 0 ? 'var(--primary-neon)' : 'var(--danger-color)';
+        netEl.style.color = netBalance >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
     }
     if (statusEl) {
         statusEl.textContent = netBalance >= 0 ? 'Flujo positivo en el periodo' : 'Atención: Déficit en el periodo';
@@ -131,7 +150,7 @@ function recalculateAndRender() {
 
     if (savRateEl) {
         savRateEl.textContent = `${savingsRate}%`;
-        savRateEl.style.color = savingsRate >= 20 ? 'var(--primary-neon)' : savingsRate >= 0 ? 'var(--warning-color)' : 'var(--danger-color)';
+        savRateEl.style.color = savingsRate >= 20 ? 'var(--primary-neon)' : savingsRate >= 0 ? 'var(--warning-color, #f59e0b)' : 'var(--danger-color, #ef4444)';
     }
     if (savHintEl) {
         savHintEl.textContent = savingsRate >= 20 ? 'Excelente salud financiera (≥ 20%)' : 'Meta recomendada: ahorrar al menos 20%';
@@ -166,10 +185,10 @@ function updateBudgetBar(totalExpense) {
         barEl.style.backgroundColor = 'var(--primary-neon)';
         alertTextEl.textContent = `Has consumido el ${pct}% (${formatCOP(totalExpense)}) de tu presupuesto de ${formatCOP(savedLimit)}. Margen saludable.`;
     } else if (pct <= 95) {
-        barEl.style.backgroundColor = 'var(--warning-color)';
+        barEl.style.backgroundColor = 'var(--warning-color, #f59e0b)';
         alertTextEl.textContent = `Precaución: Has alcanzado el ${pct}% (${formatCOP(totalExpense)}) de tu tope mensual (${formatCOP(savedLimit)}).`;
     } else {
-        barEl.style.backgroundColor = 'var(--danger-color)';
+        barEl.style.backgroundColor = 'var(--danger-color, #ef4444)';
         alertTextEl.textContent = `¡Alerta Presupuestal! Gastos en ${formatCOP(totalExpense)} (${pct}% del límite de ${formatCOP(savedLimit)}).`;
     }
 }
@@ -191,7 +210,7 @@ function renderCategoryBreakdown(expensesByCategory, totalExpense) {
         return `
             <div>
                 <div style="display: flex; justify-content: space-between; font-size: 0.83rem; margin-bottom: 4px;">
-                    <span style="font-weight: 600; color: var(--text-main);">${cat}</span>
+                    <span style="font-weight: 600; color: var(--text-main);">${escapeHTML(cat)}</span>
                     <span style="color: var(--text-muted);"><strong>${formatCOP(amount)}</strong> (${pct}%)</span>
                 </div>
                 <div style="width: 100%; height: 8px; background: var(--panel-bg); border-radius: 6px; overflow: hidden;">
@@ -239,7 +258,7 @@ function renderTransactionsList(periodTxs) {
     filtered.forEach(tx => {
         const isIncome = tx.type === 'ingreso';
         const sign = isIncome ? '+' : '−';
-        const amountColor = isIncome ? '#10b981' : 'var(--danger-color)';
+        const amountColor = isIncome ? '#10b981' : 'var(--danger-color, #ef4444)';
         const catColor = CATEGORY_COLORS[tx.category] || '#10b981';
         const recurringBadge = tx.is_recurring
             ? `<span style="font-size: 0.7rem; padding: 2px 7px; border-radius: 6px; background: var(--icon-bg); color: var(--primary-neon); margin-left: 6px;">🔄 Fijo Mensual</span>`
@@ -254,17 +273,17 @@ function renderTransactionsList(periodTxs) {
         row.innerHTML = `
             <div class="setting-info" style="flex: 1;">
                 <h4 style="font-size: 0.96rem; color: var(--text-main); display: flex; align-items: center; flex-wrap: wrap;">
-                    ${tx.title} ${recurringBadge}
+                    ${escapeHTML(tx.title)} ${recurringBadge}
                 </h4>
                 <p style="font-size: 0.8rem; color: var(--text-muted);">
-                    <strong style="color: ${catColor};">${tx.category || 'General'}</strong> • Fecha: ${tx.transaction_date}
+                    <strong style="color: ${catColor};">${escapeHTML(tx.category || 'General')}</strong> • Fecha: ${escapeHTML(tx.transaction_date)}
                 </p>
             </div>
             <div style="display: flex; align-items: center; gap: 14px;">
                 <span style="font-size: 1.05rem; font-weight: 800; color: ${amountColor};">
                     ${sign}${formatCOP(tx.amount)}
                 </span>
-                <button type="button" class="btn-outline btn-del-tx" title="Eliminar registro" style="border-color: transparent; color: var(--danger-color); padding: 4px 8px;">
+                <button type="button" class="btn-outline btn-del-tx" title="Eliminar registro" style="border-color: transparent; color: var(--danger-color, #ef4444); padding: 4px 8px;">
                     ✕
                 </button>
             </div>
@@ -279,7 +298,7 @@ function renderTransactionsList(periodTxs) {
             if (!error) {
                 allTransactions = allTransactions.filter(item => item.id !== tx.id);
                 recalculateAndRender();
-                showToast('Movimiento eliminado del libro mayor', 'info');
+                showToast('Movimiento eliminado del libro mayor.', 'info');
             }
         });
 
@@ -300,8 +319,8 @@ function bindFinanceEvents() {
                 b.style.color = 'var(--text-muted)';
             });
             if (selectedTxType === 'gasto') {
-                btn.style.borderColor = 'var(--danger-color)';
-                btn.style.color = 'var(--danger-color)';
+                btn.style.borderColor = 'var(--danger-color, #ef4444)';
+                btn.style.color = 'var(--danger-color, #ef4444)';
                 if (categorySelect) categorySelect.value = 'Servicios';
             } else {
                 btn.style.borderColor = '#10b981';
@@ -318,7 +337,6 @@ function bindFinanceEvents() {
             const recCheck = document.getElementById('txRecurringCheck');
             const amountInput = document.getElementById('txAmountInput');
 
-            // Forzar modo Gasto
             const expBtn = document.querySelector('.tx-type-btn[data-type="gasto"]');
             if (expBtn) expBtn.click();
 
@@ -340,46 +358,59 @@ function bindFinanceEvents() {
             const amountInput = document.getElementById('txAmountInput');
             const dateInput = document.getElementById('txDateInput');
             const recCheck = document.getElementById('txRecurringCheck');
+            const submitBtn = txForm.querySelector('button[type="submit"]');
 
             const title = titleInput.value.trim();
             const amount = parseFloat(amountInput.value);
 
             if (!title || isNaN(amount) || amount <= 0) {
-                showToast('Ingresa un concepto válido y un monto mayor a cero', 'error');
+                showToast('Ingresa un concepto válido y un monto mayor a cero.', 'error');
                 return;
             }
 
-            const { error } = await supabase.from('finance_transactions').insert({
-                user_id: currentUser.id,
-                title,
-                amount,
-                type: selectedTxType,
-                category: categorySelect.value,
-                is_recurring: recCheck.checked,
-                transaction_date: dateInput.value || new Date().toISOString().split('T')[0]
-            });
+            if (submitBtn) submitBtn.disabled = true;
 
-            if (error) {
-                showToast('Error al registrar movimiento: ' + error.message, 'error');
-            } else {
+            try {
+                const { error } = await supabase.from('finance_transactions').insert({
+                    user_id: currentUser.id,
+                    title,
+                    amount,
+                    type: selectedTxType,
+                    category: categorySelect.value,
+                    is_recurring: recCheck.checked,
+                    transaction_date: dateInput.value || new Date().toISOString().split('T')[0]
+                });
+
+                if (error) throw error;
+
                 titleInput.value = '';
                 amountInput.value = '';
                 recCheck.checked = false;
-                showToast('Movimiento registrado exitosamente', 'success');
+                showToast('Movimiento registrado exitosamente.', 'success');
                 await loadFinanceTransactions();
+            } catch (error) {
+                showToast('Error al registrar movimiento: ' + error.message, 'error');
+            } finally {
+                if (submitBtn) submitBtn.disabled = false;
             }
         });
     }
 
-    // 4. Guardar Tope de Presupuesto Mensual
+    // 4. Guardar Tope de Presupuesto Mensual (Local + Sincronización Nube en Supabase)
     const btnSaveBudget = document.getElementById('btnSaveBudgetLimit');
     if (btnSaveBudget) {
-        btnSaveBudget.addEventListener('click', () => {
+        btnSaveBudget.addEventListener('click', async () => {
             const limitInput = document.getElementById('finBudgetLimitInput');
-            const val = parseFloat(limitInput?.value || 0);
-            localStorage.setItem(`ngn_budget_limit_${currentUser.id}`, val > 0 ? val : 0);
+            const val = Math.max(0, parseFloat(limitInput?.value || 0));
+            localStorage.setItem(`ngn_budget_limit_${currentUser.id}`, String(val));
             recalculateAndRender();
-            showToast('Límite de presupuesto actualizado', 'success');
+            showToast('Límite de presupuesto actualizado y sincronizado.', 'success');
+
+            try {
+                await supabase.auth.updateUser({ data: { budget_limit: val } });
+            } catch (e) {
+                console.warn('No se pudo sincronizar el tope en la nube:', e);
+            }
         });
     }
 
@@ -421,7 +452,7 @@ function bindFinanceEvents() {
         btnExportCSV.addEventListener('click', () => {
             const periodTxs = getPeriodFilteredTransactions();
             if (periodTxs.length === 0) {
-                showToast('No hay movimientos para exportar en este periodo', 'error');
+                showToast('No hay movimientos para exportar en este periodo.', 'error');
                 return;
             }
 
@@ -444,7 +475,7 @@ function bindFinanceEvents() {
             document.body.appendChild(link);
             link.click();
             link.remove();
-            showToast('Reporte CSV descargado correctamente', 'success');
+            showToast('Reporte CSV descargado correctamente.', 'success');
         });
     }
 }

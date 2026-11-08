@@ -11,7 +11,7 @@
       </button>
       <div>
         <h1 class="settings-title" style="margin: 0;">Despensa Inteligente</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Control de suministros, alertas de caducidad y lista de compras automatizada</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Control de suministros, alertas de caducidad y lista de compras sincronizada con Finanzas</p>
       </div>
     </div>
 
@@ -118,14 +118,27 @@
         </button>
       </form>
 
-      <!-- Panel Rápido: Lista de Supermercado -->
+      <!-- Panel Rápido: Lista de Supermercado + Liquidación en Finanzas -->
       <div style="background: var(--panel-bg); padding: 1.3rem; border-radius: 18px; border: 1px solid var(--border-card);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
           <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--primary-neon); text-transform: uppercase; margin: 0;">🛒 Lista de Compras</h4>
           <span id="shoppingSideBadge" style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">0 ítems</span>
         </div>
-        <div id="shoppingListSideContainer" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 250px; overflow-y: auto;">
+        <div id="shoppingListSideContainer" style="display: flex; flex-direction: column; gap: 0.6rem; max-height: 230px; overflow-y: auto; margin-bottom: 0.9rem;">
           <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Todo abastecido. No hay compras urgentes.</p>
+        </div>
+
+        <!-- Puente Ecosistémico: Liquidar Compras y Registrar Gasto en Finanzas -->
+        <div id="shoppingCheckoutBox" style="border-top: 1px dashed var(--border-card); padding-top: 0.85rem; display: none;">
+          <label for="checkoutTotalInput" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">
+            💳 Reabastecer todo y registrar gasto en Finanzas:
+          </label>
+          <div style="display: flex; gap: 6px;">
+            <input type="number" id="checkoutTotalInput" class="form-input" placeholder="Costo total ($ opcional)" min="0" step="100" style="padding: 0.5rem 0.7rem; font-size: 0.82rem;">
+            <button type="button" id="btnCheckoutToFinance" class="btn-save" style="margin: 0; padding: 0.5rem 0.9rem; font-size: 0.8rem; white-space: nowrap;">
+              Abastecer Todo
+            </button>
+          </div>
         </div>
       </div>
 
