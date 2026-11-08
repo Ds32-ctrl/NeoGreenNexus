@@ -4,10 +4,14 @@
   "description": "Ecosistema Modular NeoGreenNexus (Web, Android APK & Nexus Core Desktop)",
   "main": "electron/main.js",
   "scripts": {
-  "desktop:dev": "electron .",
-  "desktop:build": "electron-builder --win nsis --x64 --publish always && powershell -Command \"Remove-Item -Recurse -Force dist-desktop\""
-},
-  "build": {
+    "desktop:dev": "electron .",
+    "desktop:build": "electron-builder --win nsis --x64 --publish always && powershell -Command \"Remove-Item -Recurse -Force dist-desktop\"",
+    "android:init": "npx cap add android",
+    "android:sync": "npx cap copy android",
+    "android:open": "npx cap open android",
+    "android:build": "npx cap copy android && .\\android\\gradlew -p android assembleDebug && node scripts/upload-apk.js"  
+    },
+    "build": {
     "appId": "com.neogreennexus.desktop",
     "productName": "NexusCore",
     "directories": {
@@ -30,8 +34,10 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.2",
     "@capacitor/cli": "^8.3.0",
-    "@capacitor/core": "^8.3.0"
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/status-bar": "^8.0.4"
   },
   "devDependencies": {
     "electron": "^35.7.5",

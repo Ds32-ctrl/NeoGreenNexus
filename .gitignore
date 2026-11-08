@@ -71,3 +71,13 @@ dist-desktop/
 dist-release/
 *.exe
 *.blockmap
+# Android & Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/**/.cxx/
+*.apk
+*.aab
+*.jks
+*.keystore

@@ -177,4 +177,20 @@ export function initRouter() {
             navigateTo('/', false);
         }
     }
+// Soporte nativo para el botón físico "Atrás" en el APK de Android (Capacitor)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('backButton', async ({ canGoBack }) => {
+            const dynamicView = document.getElementById('dynamic-view');
+            const isInsideModule = dynamicView && dynamicView.style.display !== 'none';
+
+            if (canGoBack && isInsideModule) {
+                window.history.back();
+            } else if (isInsideModule) {
+                const { data: { session } } = await supabase.auth.getSession();
+                await navigateTo(session ? '/views/dashboard.html' : '/', false);
+            } else {
+                window.Capacitor.Plugins.App.exitApp();
+            }
+        });
+    }
 }
