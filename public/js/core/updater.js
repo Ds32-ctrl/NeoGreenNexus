@@ -2,8 +2,8 @@ import { APP_VERSION } from './version.js';
 
 export async function checkForAppUpdates() {
   // 1. Detección de entorno: Bloquear si es un navegador web estándar
-  const isElectron = navigator.userAgent.toLowerCase().includes('electron');
-  const isCapacitor = window.Capacitor && window.Capacitor.isNative;
+    const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+    const isCapacitor = Boolean(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.isNative);
 
   if (!isElectron && !isCapacitor) {
     console.debug('Ejecución en Web detectada. Omitiendo comprobación de actualizaciones.');
