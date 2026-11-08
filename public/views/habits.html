@@ -1,0 +1,122 @@
+<!-- public/views/habits.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera del Módulo -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Rastreador de Hábitos</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Forja disciplina diaria, audita tu consistencia de 7 días y sostén tus rachas</p>
+      </div>
+    </div>
+
+    <!-- Indicador de Fecha Hoy -->
+    <div style="background: var(--panel-bg); padding: 0.65rem 1.2rem; border-radius: 14px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base); display: flex; align-items: center; gap: 8px;">
+      <span class="pulse-dot"></span>
+      <span id="habitsTodayLabel" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">Jornada Activa</span>
+    </div>
+  </div>
+
+  <!-- Fila 1: 4 Tarjetas KPI de Rendimiento Conductual -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
+    
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Cumplimiento Hoy</span>
+      <h2 id="habCompletedToday" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--primary-neon);">0 / 0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Rutinas marcadas hoy</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Eficiencia Semanal</span>
+      <h2 id="habWeeklyEfficiency" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--info-color);">0%</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Respecto a tu meta de 7 días</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Mejor Racha Activa</span>
+      <h2 id="habBestStreak" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color);">0 días</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Consistencia ininterrumpida</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Check-ins</span>
+      <h2 id="habTotalLogs" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--text-main);">0</h2>
+      <span style="font-size: 0.78rem; color: var(--text-muted);">Registros históricos</span>
+    </div>
+
+  </div>
+
+  <!-- Fila 2: Contenedor Principal (Creador de Hábito + Matriz de 7 Días) -->
+  <div class="settings-container" style="grid-template-columns: 340px 1fr;">
+    
+    <!-- COLUMNA IZQUIERDA: FORMULARIO Y PLANTILLAS RÁPIDAS -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+      
+      <form id="habitCreateForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Nuevo Hábito</h3>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="habTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Hábito o Rutina</label>
+          <input type="text" id="habTitleInput" class="form-input" placeholder="Ej. Entrenamiento de fuerza, Lectura..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+        </div>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="habDescInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Motivación o Regla Mínima</label>
+          <input type="text" id="habDescInput" class="form-input" placeholder="Ej. Al menos 30 minutos sin distracciones" style="padding: 0.65rem 0.9rem; font-size: 0.85rem;">
+        </div>
+
+        <div style="margin-bottom: 1.1rem;">
+          <label for="habTargetSelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Meta de Frecuencia Semanal</label>
+          <select id="habTargetSelect" class="form-input" style="padding: 0.65rem; font-size: 0.86rem; cursor: pointer;">
+            <option value="7" selected>🔥 Todos los días (7 días/sem)</option>
+            <option value="6">⚡ Intensivo (6 días/sem)</option>
+            <option value="5">💼 Lunes a Viernes (5 días/sem)</option>
+            <option value="4">🏋️ Intermedio (4 días/sem)</option>
+            <option value="3">🌱 Sostenible (3 días/sem)</option>
+            <option value="2">🎯 Específico (2 días/sem)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+          Integrar Rutina
+        </button>
+      </form>
+
+      <!-- Plantillas Rápidas de Alto Rendimiento -->
+      <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem;">⚡ Rutinas Sugeridas (1 Clic)</h4>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <button type="button" class="btn-outline quick-habit-btn" data-title="Hidratación (2.5L Agua)" data-desc="Beber agua pura durante el día" data-days="7">💧 Hidratación</button>
+          <button type="button" class="btn-outline quick-habit-btn" data-title="Lectura Técnica / Estudio" data-desc="30 minutos de lectura enfocada" data-days="6">📚 Lectura 30m</button>
+          <button type="button" class="btn-outline quick-habit-btn" data-title="Entrenamiento Físico" data-desc="Sesión de fuerza o cardio" data-days="5">🏋️ Ejercicio</button>
+          <button type="button" class="btn-outline quick-habit-btn" data-title="Cero Pantallas (1h antes de dormir)" data-desc="Descanso visual e higiene de sueño" data-days="7">🌙 Sueño Limpio</button>
+          <button type="button" class="btn-outline quick-habit-btn" data-title="Revisión Financiera NGN" data-desc="Registrar gastos del día en el nodo" data-days="7">📈 Auditoría</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- COLUMNA DERECHA: MATRIZ DE 7 DÍAS Y SEGUIMIENTO -->
+    <div class="settings-content" style="padding: 2.2rem;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid var(--border-card);">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 700; margin: 0;">Matriz de Sincronía (Últimos 7 Días)</h3>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">Haz clic en cualquier recuadro diario para registrar o desmarcar tu cumplimiento.</p>
+        </div>
+      </div>
+
+      <!-- Contenedor Dinámico de Hábitos -->
+      <div id="habitsMatrixContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Sincronizando hábitos con Supabase...</p>
+      </div>
+
+    </div>
+
+  </div>
+</div>
