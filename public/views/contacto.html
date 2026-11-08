@@ -1,0 +1,101 @@
+<!-- public/views/contacto.html -->
+<div class="settings-wrapper" style="padding-top: 2rem;">
+  <div style="text-align: center; max-width: 680px; margin: 0 auto 3rem;">
+    <div class="version-badge">
+      <span class="pulse-dot"></span> Canal de Comunicación Directa
+    </div>
+    <h1 style="font-size: clamp(2rem, 3.8vw, 2.8rem); font-weight: 800; margin-bottom: 0.8rem;">Conecta con NeoGreenNexus</h1>
+    <p style="color: var(--text-muted); font-size: 1.05rem;">
+      ¿Tienes sugerencias para nuevos módulos, encontraste un bug o deseas implementar NGN en tu entorno? Escríbenos directamente.
+    </p>
+  </div>
+
+  <div class="settings-container" style="grid-template-columns: 340px 1fr; max-width: 1000px; margin: 0 auto; min-height: auto;">
+    
+    <!-- Información de Contacto Lateral -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; gap: 2rem;">
+      <div>
+        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">Nodos de Soporte</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.8rem;">
+          Nuestro equipo revisa cada reporte técnico y solicitud de integración en menos de 24 horas hábiles.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="icon-small" style="width: 36px; height: 36px; border-radius: 10px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">CORREO OFICIAL</div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-main);">soporte@neogreennexus.com</div>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="icon-small" style="width: 36px; height: 36px; border-radius: 10px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">REPOSITORIO & RELEASES</div>
+              <a href="https://github.com/Ds32-ctrl/NeoGreenNexus" target="_blank" rel="noopener noreferrer" style="font-size: 0.9rem; font-weight: 700; color: var(--primary-neon); text-decoration: none;">github.com/Ds32-ctrl/NeoGreenNexus</a>
+            </div>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="icon-small" style="width: 36px; height: 36px; border-radius: 10px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            </div>
+            <div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">ESTADO DE LA RED</div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: var(--primary-neon);">100% Operativo (Supabase Cloud)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="padding: 1rem; border-radius: 14px; background: var(--panel-bg); border: 1px solid var(--border-card); font-size: 0.8rem; color: var(--text-muted);">
+        💡 <strong>Tip:</strong> Si ya eres usuario registrado, puedes dejar notas y alertas directamente desde tu <strong>Tablero Compartido</strong>.
+      </div>
+    </div>
+
+    <!-- Formulario de Envío -->
+    <div class="settings-content" style="padding: 2.5rem;">
+      <h2 class="pane-title">Enviar Mensaje al Equipo</h2>
+      <p class="pane-subtitle" style="margin-bottom: 1.8rem;">Completa los campos y te responderemos a la brevedad.</p>
+
+      <form id="publicContactForm">
+        <div class="form-row" style="max-width: 100%;">
+          <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label for="contactName">Tu Nombre</label>
+            <input type="text" id="contactName" class="form-input" placeholder="Ej. Steeven Carrillo" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label for="contactEmail">Correo de Respuesta</label>
+            <input type="email" id="contactEmail" class="form-input" placeholder="tu@correo.com" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+          <label for="contactSubject">Motivo de Contacto</label>
+          <select id="contactSubject" class="form-input" style="cursor: pointer;">
+            <option value="Soporte Técnico">🛠️ Soporte Técnico / Reporte de Bug</option>
+            <option value="Sugerencia de Módulo">💡 Sugerencia para Nuevo Módulo</option>
+            <option value="Licencias y Despliegue">🏢 Licencias / Despliegue Personalizado</option>
+            <option value="Otro">📬 Otro Asunto</option>
+          </select>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label for="contactMessage">Mensaje Detallado</label>
+          <textarea id="contactMessage" class="form-input" rows="4" placeholder="Cuéntanos cómo podemos ayudarte..." required style="resize: vertical;"></textarea>
+        </div>
+
+        <button type="submit" class="btn-save" style="margin-top: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          Transmitir Mensaje
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>

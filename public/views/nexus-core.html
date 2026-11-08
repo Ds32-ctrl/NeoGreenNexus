@@ -1,20 +1,41 @@
-<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px;">
-    <a href="#" onclick="event.preventDefault(); window.location.href='/';" style="position: absolute; top: 100px; left: 5%; color: var(--primary-neon); text-decoration: none; font-weight: 600; font-size: 1rem;">← Volver al Nexus</a>
-    
-    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" stroke-width="1.5" style="margin-bottom: 20px;">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line>
-    </svg>
-    
-    <h1 style="font-size: clamp(2.5rem, 5vw, 3.5rem); margin-bottom: 10px; font-weight: 800; color: var(--text-main);">
-        Nexus Core <span style="color: var(--primary-neon);">Desktop</span>
-    </h1>
-    
-    <p style="color: var(--text-muted); font-size: 1.15rem; max-width: 500px; margin: 0 auto 30px auto; line-height: 1.6;">
-        El centro de comando definitivo. Monitoriza métricas, sincroniza los módulos de 360 Home y gestiona el ecosistema de tu estación de trabajo en local.
-    </p>
-    
-    <button class="btn-download" style="max-width: 320px; padding: 15px; margin: 0 auto; background-color: var(--text-main); color: var(--bg-color); font-weight: 700; cursor:pointer;">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-        Descargar Instalador (Win/Mac)
+<!-- public/views/nexus-core.html (Vista Comercial Desktop) -->
+<div class="product-showcase">
+  <div class="version-badge">
+    <span class="pulse-dot"></span> Distribución de Escritorio (Windows / macOS / Linux)
+  </div>
+  <h1 style="font-size: clamp(2.4rem, 4.5vw, 3.6rem); font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+    Nexus <span style="color: var(--primary-neon);">Core Desktop</span>
+  </h1>
+  <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 640px; margin-bottom: 2.5rem; line-height: 1.7;">
+    Potencia de estación de trabajo. Diseñado para pantallas panorámicas, gestión profunda de finanzas domésticas, control de múltiples zonas y ejecución en segundo plano con consumo mínimo de RAM.
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width: 100%; max-width: 920px; margin-bottom: 3rem; text-align: left;">
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">🖥️ Interfaz Multi-Panel</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Visualiza simultáneamente tu libro mayor financiero, inventario y tablero familiar sin cambiar de ventana.</p>
+    </div>
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">🔐 Bóveda Encriptada</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Autenticación directa mediante tokens JWT de Supabase y cierre de sesión a prueba de fallos.</p>
+    </div>
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">🎨 Motor Cromático Live</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Personalización instantánea de temas y modo oscuro profundo para sesiones nocturnas de trabajo.</p>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+    <a href="/assets/NexusCore-Setup.exe" download class="btn btn-primary" id="btnDownloadDesktop">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+        <line x1="8" y1="21" x2="16" y2="21"></line>
+        <line x1="12" y1="17" x2="12" y2="21"></line>
+      </svg>
+      Descargar Instalador (Win / Mac)
+    </a>
+    <button type="button" class="btn-outline encrypted-route" data-target="/views/360-home.html" style="padding: 0.9rem 1.6rem; font-size: 0.95rem;">
+      ← Volver a Serie 360 Home
     </button>
+  </div>
 </div>

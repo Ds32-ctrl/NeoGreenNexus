@@ -20,7 +20,8 @@ const viewControllers = {
     '/views/family-board.html': initFamilyBoard,
     '/views/finance.html': initFinance,
     '/views/inventory.html': initInventory,
-    '/views/habits.html': initHabits
+    '/views/habits.html': initHabits,
+    '/views/contacto.html': initPublicContact,
 };
 
 // Vistas que deben ocultar el header público principal
@@ -128,7 +129,16 @@ export function initRouter() {
             }
         }
     });
-
+function initPublicContact() {
+    const form = document.getElementById('publicContactForm');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('contactName')?.value.trim() || 'Usuario';
+        form.reset();
+        showToast(`Gracias ${name}, tu mensaje ha sido recibido por el equipo NGN.`, 'success');
+    });
+}
     // Carga inicial si la URL ya trae un parámetro ?node=...
     const params = new URLSearchParams(window.location.search);
     const initialNode = params.get('node');

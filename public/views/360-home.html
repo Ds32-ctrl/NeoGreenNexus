@@ -1,35 +1,41 @@
+<!-- public/views/360-home.html (Vista Comercial de Distribución) -->
 <div class="product-showcase">
-    <div class="version-badge">
-        <span class="pulse-dot"></span> Módulo Activo
+  <div class="version-badge">
+    <span class="pulse-dot"></span> Distribución Móvil & Web Cloud v2.0
+  </div>
+  <h1 style="font-size: clamp(2.4rem, 4.5vw, 3.6rem); font-weight: 800; margin-bottom: 1rem; color: var(--text-main);">
+    Serie <span style="color: var(--primary-neon);">360 Home</span>
+  </h1>
+  <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 640px; margin-bottom: 2.5rem; line-height: 1.7;">
+    El nodo central para tu vida cotidiana. Integra telemetría climática, finanzas del hogar, inventario de despensa con alertas de caducidad, zonas de mantenimiento y rastreador de hábitos en una sola interfaz.
+  </p>
+
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; width: 100%; max-width: 920px; margin-bottom: 3rem; text-align: left;">
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">⚡ Sincronización Instantánea</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Base de datos PostgreSQL en la nube con actualización en milisegundos entre todos tus dispositivos.</p>
     </div>
-    <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 1rem;">Ecosistema 360 Home</h1>
-    <p style="color: var(--text-muted); font-size: 1.1rem; max-width: 600px; margin-bottom: 2.5rem;">
-        Tu núcleo de control diario. Monitorea el clima de tu ubicación, visualiza alertas pendientes y controla el reproductor ambiental desde un solo nodo de acceso rápido.
-    </p>
-    
-    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center;">
-        <div class="glass-widget" style="position: relative; width: 300px; text-align: left;">
-            <div class="widget-header">
-                <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg></div>
-                <span>Clima Local</span>
-            </div>
-            <h2 style="font-size: 2rem; font-weight: 700;">24°C</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">Cielo despejado, humedad 45%</p>
-        </div>
-        
-        <div class="glass-widget" style="position: relative; width: 300px; text-align: left;">
-            <div class="widget-header">
-                <div class="icon-small"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div>
-                <span>Alertas Críticas</span>
-            </div>
-            <ul style="list-style: none; color: var(--text-muted); font-size: 0.9rem;">
-                <li style="margin-bottom: 8px;">• Pago de electricidad vence hoy</li>
-                <li>• Filtrar el agua del dispensador</li>
-            </ul>
-        </div>
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">💰 Auditoría Financiera</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Control de presupuesto mensual, plantillas de servicios fijos y exportación contable a CSV.</p>
     </div>
-    
-    <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" style="margin-top: 3rem; width: auto; padding: 0 1.5rem;">
-        Volver al Panel Central
+    <div class="app-card" style="padding: 1.6rem;">
+      <h3 style="font-size: 1.15rem; margin-bottom: 0.4rem;">🎧 Sintetizador Focus</h3>
+      <p style="margin: 0; font-size: 0.9rem;">Generador WebAudio integrado con ruido marrón, lluvia suave y frecuencia binaural 432Hz.</p>
+    </div>
+  </div>
+
+  <div style="display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center;">
+    <a href="/assets/ngn-360-home.apk" download class="btn btn-primary" id="btnDownloadApk">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      Descargar APK (Android)
+    </a>
+    <button type="button" class="btn-outline encrypted-route" data-target="/views/nexus-core.html" style="padding: 0.9rem 1.6rem; font-size: 0.95rem;">
+      Ver Edición Escritorio (Nexus Core) →
     </button>
+  </div>
 </div>
