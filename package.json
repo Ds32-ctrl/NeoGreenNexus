@@ -9,7 +9,7 @@
     "android:init": "npx cap add android",
     "android:sync": "npx cap copy android",
     "android:open": "npx cap open android",
-    "android:build": "npx cap copy android && .\\android\\gradlew -p android assembleDebug && node scripts/upload-apk.js",
+    "android:build": "npx cap copy android && powershell -Command \"$env:JAVA_HOME='C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.13.9-hotspot'; .\\android\\gradlew -p android assembleDebug\" && node scripts/upload-apk.js",
     "version:bump": "npm version patch -m \"chore(release): version %s\"",
     "git:push": "git push --follow-tags",
     "deploy:all": "npm run version:bump && npm run git:push && npm run desktop:build && npm run android:build && firebase deploy --only hosting"
