@@ -1,6 +1,6 @@
 {
   "name": "neogreennexus",
-  "version": "2.0.13",
+  "version": "2.0.14",
   "description": "Ecosistema Modular NeoGreenNexus (Web, Android APK & Nexus Core Desktop)",
   "main": "electron/main.js",
   "scripts": {
