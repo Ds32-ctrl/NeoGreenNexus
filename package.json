@@ -1,19 +1,19 @@
 {
   "name": "neogreennexus",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Ecosistema Modular NeoGreenNexus (Web, Android APK & Nexus Core Desktop)",
   "main": "electron/main.js",
   "scripts": {
-  "desktop:dev": "electron .",
-  "desktop:build": "electron-builder --win nsis --x64 --publish always && powershell -Command \"if (Test-Path dist-desktop) { Remove-Item -Recurse -Force dist-desktop -ErrorAction SilentlyContinue }\"",
-  "android:init": "npx cap add android",
-  "android:sync": "npx cap copy android",
-  "android:open": "npx cap open android",
-  "android:build": "npx cap copy android && .\\android\\gradlew -p android assembleDebug && node scripts/upload-apk.js",
-  "version:bump": "npm version patch -m \"chore(release): version %s\"",
-  "git:push": "git push --follow-tags",
-  "deploy:all": "npm run version:bump && npm run git:push && npm run desktop:build && npm run android:build && firebase deploy --only hosting"
-},
+    "desktop:dev": "electron .",
+    "desktop:build": "electron-builder --win nsis --x64 --publish always && powershell -Command \"if (Test-Path dist-desktop) { Remove-Item -Recurse -Force dist-desktop -ErrorAction SilentlyContinue }\"",
+    "android:init": "npx cap add android",
+    "android:sync": "npx cap copy android",
+    "android:open": "npx cap open android",
+    "android:build": "npx cap copy android && .\\android\\gradlew -p android assembleDebug && node scripts/upload-apk.js",
+    "version:bump": "npm version patch -m \"chore(release): version %s\"",
+    "git:push": "git push --follow-tags",
+    "deploy:all": "npm run version:bump && npm run git:push && npm run desktop:build && npm run android:build && firebase deploy --only hosting"
+  },
   "build": {
     "appId": "com.neogreennexus.desktop",
     "productName": "NexusCore",
