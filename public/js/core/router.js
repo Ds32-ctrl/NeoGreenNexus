@@ -10,7 +10,6 @@ import { initFinance } from '../controllers/finance.controller.js';
 import { initInventory } from '../controllers/inventory.controller.js';
 import { initHabits } from '../controllers/habits.controller.js';
 import { showToast } from '../ui/toast.js';
-import { initNexusCore } from '../controllers/nexus-core.controller.js';
 
 function initPublicContact() {
     const form = document.getElementById('publicContactForm');
@@ -25,7 +24,6 @@ function initPublicContact() {
 
 // Mapeo exacto de rutas a sus controladores correspondientes
 const viewControllers = {
-    '/views/nexus-core.html': initNexusCore,
     '/views/dashboard.html': initDashboard,
     '/views/settings.html': initSettings,
     '/views/home-hub.html': initHomeHub,
@@ -83,7 +81,9 @@ export async function navigateTo(targetPath, pushHistory = true) {
         }
 
         // Cargar el HTML de la vista solicitada
-        const response = await fetch(cleanPath);
+        // Soporte dual: Firebase Hosting (http/https) y Ejecutable Local (file://)
+        const fetchUrl = window.location.protocol === 'file:' ? `.${cleanPath}` : cleanPath;
+        const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`Vista no encontrada: ${cleanPath}`);
 
         dynamicView.innerHTML = await response.text();
@@ -102,10 +102,11 @@ export async function navigateTo(targetPath, pushHistory = true) {
         });
 
         // Actualizar la URL con Base64 si corresponde
-        if (pushHistory) {
+        // Actualizar la URL con Base64 si corresponde
+        if (pushHistory && window.location.protocol !== 'file:') {
             const encoded = btoa(cleanPath);
             history.pushState({ path: cleanPath }, '', `?node=${encoded}`);
-        }
+        }   
 
         window.scrollTo(0, 0);
 

@@ -66,6 +66,9 @@ export async function initHomeHub() {
             }
         });
     }
+    if (window.nexusDesktop?.isDesktopApp) {
+        await mountDesktopNativePanel();
+    }
 }
 
 // 1. TELEMETRÍA CONSOLIDADA DESDE SUPABASE
@@ -388,4 +391,49 @@ function initAmbientSynthesizer() {
             if (gainNode) gainNode.gain.value = Number(e.target.value);
         });
     }
+    async function mountDesktopNativePanel() {
+        const wrapper = document.querySelector('.settings-wrapper');
+        if (!wrapper || document.getElementById('nexusDesktopNativeBox')) return;
+
+        const info = await window.nexusDesktop.getSystemTelemetry();
+        const box = document.createElement('div');
+        box.id = 'nexusDesktopNativeBox';
+        box.style.cssText = 'margin-top: 2rem; background: var(--panel-bg); border: 1px solid var(--primary-neon); border-radius: 24px; padding: 1.8rem; box-shadow: var(--shadow-base);';
+
+        box.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem;">
+                <div>
+                    <span class="version-badge" style="margin: 0 0 6px 0;"><span class="pulse-dot"></span> EJECUTABLE NATIVO NEXUS CORE ACTIVO</span>
+                    <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0;">Estación Local: ${escapeHTML(info.hostname)} (${escapeHTML(info.platform)})</h3>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--primary-neon); font-weight: 700;">
+                    CPU: ${escapeHTML(info.cpuModel)} (${info.cpuCores} Hilos) • RAM OS: ${info.usedMemGB} / ${info.totalMemGB} GB (${info.memUsagePercent}%)
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="desktopVaultNote" class="form-input" placeholder="Texto o clave a sellar con AES-256-GCM en este equipo..." style="flex: 2; min-width: 220px;">
+                <input type="password" id="desktopVaultKey" class="form-input" placeholder="Llave maestra..." style="flex: 1; min-width: 150px;">
+                <button type="button" id="btnSealLocalVault" class="btn-save" style="margin: 0;">🔐 Sellar en Disco Local</button>
+            </div>
+        `;
+
+        wrapper.appendChild(box);
+
+        box.querySelector('#btnSealLocalVault').addEventListener('click', async () => {
+            const text = box.querySelector('#desktopVaultNote').value.trim();
+            const pass = box.querySelector('#desktopVaultKey').value;
+            if (!text || !pass) {
+                showToast('Ingresa el texto y la llave maestra para cifrar.', 'error');
+                return;
+            }
+            const enc = new TextEncoder();
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const keyMat = await crypto.subtle.importKey('raw', enc.encode(pass.padEnd(32, '0').slice(0, 32)), 'AES-GCM', false, ['encrypt']);
+            const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, keyMat, enc.encode(text));
+            const b64 = btoa(String.fromCharCode(...new Uint8Array(cipher)));
+            localStorage.setItem('ngn_desktop_vault_last', b64);
+            box.querySelector('#desktopVaultNote').value = '';
+            showToast('Bloque encriptado con AES-256-GCM guardado en la estación.', 'success');
+        });
+    }  
 }
