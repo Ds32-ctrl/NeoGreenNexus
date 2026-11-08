@@ -1,15 +1,16 @@
-// scripts/upload-apk.js
 const fs = require('fs');
 const path = require('path');
+const packageJson = require('../package.json'); // Importa la versión actual
 
 const OWNER = 'Ds32-ctrl';
 const REPO = 'NeoGreenNexus';
 const TOKEN = process.env.GH_TOKEN;
 const APK_PATH = path.join(__dirname, '..', 'android', 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
 const ASSET_NAME = 'ngn-360-home.apk';
+const TAG_NAME = `v${packageJson.version}`; // Construye el tag exacto (ej. v2.0.2)
 
 if (!TOKEN) {
-  console.error('Error: La variable de entorno GH_TOKEN no está definida en la terminal.');
+  console.error('Error: La variable GH_TOKEN no está definida en la terminal.');
   process.exit(1);
 }
 
@@ -25,24 +26,24 @@ async function uploadApk() {
     'Accept': 'application/vnd.github+json'
   };
 
-  console.log('1. Conectando con GitHub para localizar el release más reciente...');
-  const relRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/latest`, { headers });
+  console.log(`1. Buscando el release exacto (${TAG_NAME}) en GitHub...`);
+  // Ahora busca específicamente el tag recién creado por electron-builder
+  const relRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/tags/${TAG_NAME}`, { headers });
+  
   if (!relRes.ok) {
-    throw new Error(`No se pudo obtener el release activo: ${relRes.status} ${await relRes.text()}`);
+    throw new Error(`No se pudo obtener el release ${TAG_NAME}: ${relRes.status} ${await relRes.text()}`);
   }
   const release = await relRes.json();
 
-  // Si ya existía un APK previo en esta versión, lo eliminamos para sobrescribir limpiamente
   const existingAsset = release.assets.find(a => a.name === ASSET_NAME);
   if (existingAsset) {
-    console.log(`2. Removiendo versión previa de ${ASSET_NAME} en GitHub...`);
+    console.log(`2. Removiendo versión previa de ${ASSET_NAME} en el release...`);
     await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/releases/assets/${existingAsset.id}`, {
       method: 'DELETE',
       headers
     });
   }
 
-  // Subir el archivo binario
   console.log(`3. Subiendo ${ASSET_NAME} al release ${release.tag_name}...`);
   const uploadUrl = release.upload_url.replace('{?name,label}', `?name=${ASSET_NAME}`);
   const apkBuffer = fs.readFileSync(APK_PATH);
