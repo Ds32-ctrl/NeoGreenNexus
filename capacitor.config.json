@@ -1,0 +1,8 @@
+{
+  "appId": "com.neogreennexus.app",
+  "appName": "NeoGreenNexus",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  }
+}

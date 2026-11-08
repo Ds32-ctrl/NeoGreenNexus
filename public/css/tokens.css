@@ -2,7 +2,17 @@
    public/css/tokens.css
    Variables Globales (Design Tokens), Reset y Fondo Dinámico
    ========================================================= */
-
+* {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+input, textarea {
+  user-select: text;
+}
+body {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
 :root {
     /* Paleta Base - Modo Claro */
     --bg-color: #f8fafc;

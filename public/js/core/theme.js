@@ -1,4 +1,6 @@
 // public/js/core/theme.js
+import { supabase } from '../config/supabase.js';
+
 const PALETTE_COLORS = ['#10b981', '#a855f7', '#0ea5e9', '#f59e0b', '#f43f5e'];
 
 export function applyThemeColor(hexColor) {
@@ -21,7 +23,13 @@ export function applyThemeColor(hexColor) {
 
 export function toggleDarkLight() {
     document.body.classList.toggle('dark-mode');
-    localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+    const darkBtnLabel = document.querySelector('#superThemeDarkModeBtn span');
+    if (darkBtnLabel) {
+        darkBtnLabel.textContent = isDark ? 'Modo Día' : 'Modo Noche';
+    }
 }
 
 export function injectSuperButton() {
@@ -33,6 +41,7 @@ export function injectSuperButton() {
     superBtn.type = 'button';
     superBtn.id = 'superThemeOverlayBtn';
     superBtn.className = 'theme-toggle';
+    superBtn.setAttribute('aria-label', 'Abrir menú rápido de temas');
     superBtn.style.zIndex = '1002';
     superBtn.style.backgroundColor = 'var(--primary-neon)';
     superBtn.style.color = '#fff';
@@ -43,6 +52,8 @@ export function injectSuperButton() {
     superMenu.className = 'super-theme-popup';
 
     const currentColor = localStorage.getItem('ngn_theme_color') || '#10b981';
+    const isDark = document.body.classList.contains('dark-mode');
+
     superMenu.innerHTML = `
         <div style="display: flex; gap: 8px; margin-bottom: 5px;">
             ${PALETTE_COLORS.map(col => `
@@ -51,27 +62,47 @@ export function injectSuperButton() {
         </div>
         <hr style="border-color: var(--border-card); margin: 5px 0;">
         <button type="button" id="superThemeDarkModeBtn" style="background:transparent; border:none; color:var(--text-main); font-weight:600; cursor:pointer; display:flex; align-items:center; gap:8px;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> Modo Noche
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <span>${isDark ? 'Modo Día' : 'Modo Noche'}</span>
         </button>
     `;
 
     document.body.appendChild(superBtn);
     document.body.appendChild(superMenu);
 
-    superBtn.addEventListener('click', () => {
+    superBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
         superMenu.classList.toggle('open');
     });
 
+    // Cerrar el popup automáticamente al hacer clic fuera
+    document.addEventListener('click', (e) => {
+        if (!superMenu.contains(e.target) && e.target !== superBtn) {
+            superMenu.classList.remove('open');
+        }
+    });
+
     superMenu.querySelectorAll('.super-color-dot').forEach(dot => {
-        dot.addEventListener('click', (e) => {
+        dot.addEventListener('click', async (e) => {
             const newColor = e.target.getAttribute('data-col');
             applyThemeColor(newColor);
+
             superMenu.querySelectorAll('.super-color-dot').forEach(d => d.style.borderColor = 'transparent');
             e.target.style.borderColor = 'var(--text-main)';
 
             document.querySelectorAll('.theme-card').forEach(c => {
                 c.classList.toggle('active', c.getAttribute('data-color') === newColor);
             });
+
+            // Sincronizar color con Supabase si hay sesión activa
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session) {
+                    await supabase.auth.updateUser({ data: { theme_color: newColor } });
+                }
+            } catch {
+                // Ignorar silenciosamente si está offline
+            }
         });
     });
 
