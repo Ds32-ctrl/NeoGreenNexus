@@ -26,7 +26,8 @@ export async function checkForAppUpdates() {
 
     // 3. Comprobar si realmente hay una actualización superior
     if (isNewerVersion(latestVersion, currentVersion)) {
-      showUpdateNotice(release);
+      // Pasamos los indicadores de entorno para generar el enlace correcto
+      showUpdateNotice(release, isCapacitor, isElectron);
     }
   } catch (err) {
     console.debug('No se pudo comprobar actualizaciones:', err.message);
@@ -47,7 +48,18 @@ function isNewerVersion(latest, current) {
 }
 
 // Notificación visual en pantalla
-function showUpdateNotice(release) {
+function showUpdateNotice(release, isCapacitor, isElectron) {
+  // 4. Asignación de enlace de descarga directo según plataforma
+  let downloadLink = release.html_url; 
+  
+  if (isCapacitor) {
+    // Descarga directa para la app móvil
+    downloadLink = `https://github.com/Ds32-ctrl/NeoGreenNexus/releases/download/${release.tag_name}/ngn-360-home.apk`;
+  } else if (isElectron) {
+    // Descarga directa para la aplicación de escritorio
+    downloadLink = `https://github.com/Ds32-ctrl/NeoGreenNexus/releases/download/${release.tag_name}/NexusCore-Setup.exe`;
+  }
+
   const banner = document.createElement('div');
   banner.id = 'ngn-update-banner';
   banner.innerHTML = `
@@ -69,7 +81,7 @@ function showUpdateNotice(release) {
       border: 1px solid rgba(255,255,255,0.1);
     ">
       <span>🚀 Hay una nueva versión disponible (<strong>${release.tag_name}</strong>)</span>
-      <a href="${release.html_url}" target="_blank" style="
+      <a href="${downloadLink}" target="_blank" style="
         background: #2563eb;
         color: white;
         padding: 6px 12px;
