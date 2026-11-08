@@ -10,6 +10,19 @@ import { initInventory } from '../controllers/inventory.controller.js';
 import { initHabits } from '../controllers/habits.controller.js';
 import { showToast } from '../ui/toast.js';
 
+
+
+function initPublicContact() {
+    const form = document.getElementById('publicContactForm');
+    if (!form) return;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('contactName')?.value.trim() || 'Usuario';
+        form.reset();
+        showToast(`Gracias ${name}, tu mensaje ha sido recibido por el equipo NGN.`, 'success');
+    });
+}
+
 // Mapeo de rutas a sus controladores correspondientes
 const viewControllers = {
     '/views/dashboard.html': initDashboard,
@@ -129,16 +142,7 @@ export function initRouter() {
             }
         }
     });
-function initPublicContact() {
-    const form = document.getElementById('publicContactForm');
-    if (!form) return;
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const name = document.getElementById('contactName')?.value.trim() || 'Usuario';
-        form.reset();
-        showToast(`Gracias ${name}, tu mensaje ha sido recibido por el equipo NGN.`, 'success');
-    });
-}
+
     // Carga inicial si la URL ya trae un parámetro ?node=...
     const params = new URLSearchParams(window.location.search);
     const initialNode = params.get('node');
