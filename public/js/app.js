@@ -4,6 +4,12 @@ import { initRouter, navigateTo } from './core/router.js';
 import { checkActiveSession, initAuthListener } from './core/auth.js';
 import { openLoginModal } from './ui/modal.js';
 import { showToast } from './ui/toast.js';
+import { checkForAppUpdates } from './core/updater.js';
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Pasa la versión actual empaquetada
+  checkForAppUpdates('2.0.0');
+});
 
 // Catálogo de rutas para el buscador global (#searchInput)
 const SEARCHABLE_MODULES = [
