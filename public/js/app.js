@@ -7,8 +7,7 @@ import { showToast } from './ui/toast.js';
 import { checkForAppUpdates } from './core/updater.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Pasa la versión actual empaquetada
-  checkForAppUpdates('2.0.0');
+  checkForAppUpdates(); 
 });
 
 // Catálogo de rutas para el buscador global (#searchInput)

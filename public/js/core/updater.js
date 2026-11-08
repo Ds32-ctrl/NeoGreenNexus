@@ -1,5 +1,17 @@
-// public/js/core/updater.js
-export async function checkForAppUpdates(currentVersion = '2.0.0') {
+import { APP_VERSION } from './version.js';
+
+export async function checkForAppUpdates() {
+  // 1. Detección de entorno: Bloquear si es un navegador web estándar
+  const isElectron = navigator.userAgent.toLowerCase().includes('electron');
+  const isCapacitor = window.Capacitor && window.Capacitor.isNative;
+
+  if (!isElectron && !isCapacitor) {
+    console.debug('Ejecución en Web detectada. Omitiendo comprobación de actualizaciones.');
+    return; // Aborta silenciosamente
+  }
+
+  // 2. Usar la versión inyectada automáticamente en la compilación
+  const currentVersion = APP_VERSION;
   const GITHUB_REPO = 'Ds32-ctrl/NeoGreenNexus';
   
   try {
@@ -10,9 +22,9 @@ export async function checkForAppUpdates(currentVersion = '2.0.0') {
     if (!res.ok) return;
 
     const release = await res.json();
-    const latestVersion = release.tag_name.replace(/^v/, ''); // Remueve prefijo 'v' si existe
+    const latestVersion = release.tag_name.replace(/^v/, ''); 
 
-    // Comprobación de versión
+    // 3. Comprobar si realmente hay una actualización superior
     if (isNewerVersion(latestVersion, currentVersion)) {
       showUpdateNotice(release);
     }

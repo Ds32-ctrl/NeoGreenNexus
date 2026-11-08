@@ -1,18 +1,19 @@
 {
   "name": "neogreennexus",
-  "version": "2.0.8",
+  "version": "2.0.6",
   "description": "Ecosistema Modular NeoGreenNexus (Web, Android APK & Nexus Core Desktop)",
   "main": "electron/main.js",
   "scripts": {
-    "desktop:dev": "electron .",
-    "desktop:build": "electron-builder --win nsis --x64 --publish always",
-    "android:init": "npx cap add android",
-    "android:sync": "npx cap copy android",
-    "android:open": "npx cap open android",
-    "android:build": "npx cap copy android && powershell -Command \"$env:JAVA_HOME='C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.13.9-hotspot'; .\\android\\gradlew -p android assembleDebug\" && node scripts/upload-apk.js",
-    "version:bump": "npm version patch -m \"chore(release): version %s\"",
-    "git:push": "git push --follow-tags",
-    "deploy:all": "npm run version:bump && npm run git:push && npm run desktop:build && npm run android:build && firebase deploy --only hosting"
+  "desktop:dev": "electron .",
+  "desktop:build": "electron-builder --win nsis --x64 --publish always",
+  "android:init": "npx cap add android",
+  "android:sync": "npx cap copy android",
+  "android:open": "npx cap open android",
+  "android:build": "npx cap copy android && powershell -Command \"$env:JAVA_HOME='C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.13.9-hotspot'; .\\android\\gradlew -p android assembleDebug\" && node scripts/upload-apk.js",
+  "version:bump": "npm version patch -m \"chore(release): version %s\"",
+  "version:sync": "node -e \"require('fs').writeFileSync('public/js/core/version.js', 'export const APP_VERSION = ' + JSON.stringify(require('./package.json').version) + ';')\"",
+  "git:push": "git push --follow-tags",
+  "deploy:all": "npm run version:bump && npm run version:sync && npm run git:push && npm run desktop:build && npm run android:build && firebase deploy --only hosting"
   },
   "build": {
     "appId": "com.neogreennexus.desktop",
