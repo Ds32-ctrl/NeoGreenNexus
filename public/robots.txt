@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /views/
+Disallow: /electron/
+
+Sitemap: https://neogreennexus.web.app/sitemap.xml

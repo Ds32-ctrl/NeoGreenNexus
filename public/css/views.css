@@ -657,13 +657,42 @@ body.dark-mode .slider-wrapper {
 }
 
 @media (max-width: 768px) {
-    .hero {
-        padding-top: 150px;
-    }
-    .slide {
-        padding: 40px 20px;
-    }
-    .slide-content h3 {
-        font-size: 1.5rem;
-    }
+  /* Convierte cualquier distribución de dos columnas en columna única */
+  .module-container,
+  .view-container,
+  .grid-layout,
+  .two-column-layout,
+  div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+  }
+
+  /* Evita que los formularios y tarjetas se desborden horizontalmente */
+  .app-card,
+  .card,
+  form,
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Ajuste de márgenes laterales en el viewport móvil */
+  #dynamic-view {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 5rem !important; /* Espacio para que el botón flotante no tape contenido */
+  }
+
+  /* Selector de filtros y pestañas con scroll horizontal limpio si no caben */
+  .filter-tabs,
+  .category-chips {
+    display: flex !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    padding-bottom: 0.5rem !important;
+    -webkit-overflow-scrolling: touch;
+  }
 }
