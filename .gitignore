@@ -67,3 +67,7 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+dist-desktop/
+dist-release/
+*.exe
+*.blockmap

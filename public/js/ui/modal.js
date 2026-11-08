@@ -13,7 +13,8 @@ export async function openLoginModal() {
 
     try {
         if (!modalContainer.innerHTML.trim()) {
-            const response = await fetch('/views/login.html');
+            const fetchUrl = window.location.protocol === 'file:' ? './views/login.html' : '/views/login.html';
+            const response = await fetch(fetchUrl);
             if (!response.ok) throw new Error('Error al cargar /views/login.html');
             modalContainer.innerHTML = await response.text();
             initModalLogic(modalContainer);
