@@ -14,7 +14,15 @@
         <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Auditoría de liquidez, control presupuestario, pagos fijos y libro mayor</p>
       </div>
     </div>
-
+    <!-- Selector de Alcance: Personal vs Hogar -->
+      <div id="finScopeToggleBox" style="display: none; background: var(--bg-color); padding: 4px; border-radius: 12px; border: 1px solid var(--border-card);">
+        <button type="button" class="btn-outline fin-scope-btn active" data-scope="personal" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none; background: var(--panel-bg); color: var(--primary-neon); font-weight: 700;">
+          👤 Personal
+        </button>
+        <button type="button" class="btn-outline fin-scope-btn" data-scope="household" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none;">
+          🏠 Hogar Familiar
+        </button>
+      </div>
     <!-- Selector de Periodo y Exportación CSV -->
     <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
       <select id="finMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.88rem; cursor: pointer; background: var(--panel-bg);">
@@ -146,6 +154,10 @@
         <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1.1rem;">
           <input type="checkbox" id="txRecurringCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
           Es un pago o ingreso fijo mensual
+        </label>
+        <label id="txShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 1.1rem;">
+          <input type="checkbox" id="txShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+          🏠 Incluir en el Flujo Mensual del Hogar
         </label>
 
         <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">

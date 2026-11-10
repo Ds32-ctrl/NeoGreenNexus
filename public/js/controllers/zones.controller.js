@@ -2,6 +2,9 @@
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
+import { getActiveHousehold } from '../core/household.js';
+let activeHousehold = null;
+let currentAuthorName = 'Miembro';
 
 const ICON_MAP = {
     monitor: '💻',
@@ -35,6 +38,9 @@ export async function initZones() {
         return;
     }
     currentUser = user;
+    const meta = user.user_metadata || {};
+    currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
+    activeHousehold = await getActiveHousehold(user.id);
 
     bindZoneEvents();
     await loadZonesAndTasks();
@@ -42,9 +48,13 @@ export async function initZones() {
 
 async function loadZonesAndTasks() {
     try {
+        const filterExpr = activeHousehold
+            ? `user_id.eq.${currentUser.id},household_id.eq.${activeHousehold.id}`
+            : `user_id.eq.${currentUser.id}`;
+
         const [zonesRes, tasksRes] = await Promise.all([
-            supabase.from('home_zones').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: true }),
-            supabase.from('zone_tasks').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false })
+            supabase.from('home_zones').select('*').or(filterExpr).order('created_at', { ascending: true }),
+            supabase.from('zone_tasks').select('*').or(filterExpr).order('created_at', { ascending: false })
         ]);
 
         if (zonesRes.error) throw zonesRes.error;

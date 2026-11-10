@@ -2,16 +2,11 @@
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
-
-const CATEGORY_ICONS = {
-    'Alimentos':    '🍎',
-    'Despensa':     '🥫',
-    'Limpieza':     '🧼',
-    'Higiene':      '🧴',
-    'Herramientas': '🔋'
-};
+import { getActiveHousehold } from '../core/household.js';
 
 let currentUser = null;
+let currentAuthorName = 'Miembro';
+let activeHousehold = null;
 let allItems = [];
 let activeFilter = 'all';
 let searchQuery = '';
@@ -32,268 +27,169 @@ export async function initInventory() {
         return;
     }
     currentUser = user;
-    activeFilter = 'all';
-    searchQuery = '';
+    const meta = user.user_metadata || {};
+    currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
+
+    activeHousehold = await getActiveHousehold(user.id);
 
     bindInventoryEvents();
-    await loadInventoryItems();
+    await loadInventory();
 }
 
-async function loadInventoryItems() {
+async function loadInventory() {
     try {
-        const { data, error } = await supabase
-            .from('inventory_items')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('name', { ascending: true });
+        let query = supabase.from('inventory_items').select('*').order('name', { ascending: true });
+        if (activeHousehold) {
+            query = query.or(`user_id.eq.${currentUser.id},household_id.eq.${activeHousehold.id}`);
+        } else {
+            query = query.eq('user_id', currentUser.id);
+        }
 
+        const { data, error } = await query;
         if (error) throw error;
 
         allItems = data || [];
-        updateKPIsAndShoppingList();
-        renderInventoryList();
-    } catch (error) {
-        console.error('Error cargando Despensa Inteligente:', error);
-        showToast('Error al cargar el inventario.', 'error');
+        renderInventoryAndKPIs();
+    } catch (err) {
+        console.error('Error cargando inventario:', err);
+        showToast('No se pudo sincronizar la despensa', 'error');
     }
 }
 
-function getDaysUntilExpiry(expiryDateStr) {
-    if (!expiryDateStr) return null;
+function getDaysUntilExpiry(expiryStr) {
+    if (!expiryStr) return null;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const exp = new Date(expiryDateStr + 'T00:00:00');
-    const diffTime = exp - today;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const exp = new Date(expiryStr + 'T00:00:00');
+    return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
 }
 
-function isLowStock(item) {
-    return Number(item.quantity) <= Number(item.min_stock);
+function renderInventoryAndKPIs() {
+    const lowStock = allItems.filter(i => Number(i.quantity) <= Number(i.min_stock));
+    const expiring = allItems.filter(i => {
+        const d = getDaysUntilExpiry(i.expiry_date);
+        return d !== null && d <= 7;
+    });
+    const shopping = allItems.filter(i => i.in_shopping_list || Number(i.quantity) <= Number(i.min_stock));
+
+    document.getElementById('invTotalItems').textContent = allItems.length;
+    document.getElementById('invLowStockCount').textContent = lowStock.length;
+    document.getElementById('invExpiringCount').textContent = expiring.length;
+    document.getElementById('invShoppingCount').textContent = shopping.length;
+
+    renderShoppingSidebar(shopping);
+    renderMainInventoryList();
 }
 
-function isExpiringSoon(item) {
-    const days = getDaysUntilExpiry(item.expiry_date);
-    return days !== null && days <= 7;
-}
-
-function updateKPIsAndShoppingList() {
-    const totalEl = document.getElementById('invTotalItems');
-    const lowEl = document.getElementById('invLowStockCount');
-    const expEl = document.getElementById('invExpiringCount');
-    const shopEl = document.getElementById('invShoppingCount');
-    const sideBadge = document.getElementById('shoppingSideBadge');
+function renderShoppingSidebar(shoppingItems) {
     const sideContainer = document.getElementById('shoppingListSideContainer');
+    const badge = document.getElementById('shoppingSideBadge');
     const checkoutBox = document.getElementById('shoppingCheckoutBox');
 
-    const lowStockItems = allItems.filter(isLowStock);
-    const expiringItems = allItems.filter(isExpiringSoon);
-    const shoppingItems = allItems.filter(i => i.in_shopping_list || isLowStock(i));
-
-    if (totalEl) totalEl.textContent = allItems.length;
-    if (lowEl) lowEl.textContent = lowStockItems.length;
-    if (expEl) expEl.textContent = expiringItems.length;
-    if (shopEl) shopEl.textContent = shoppingItems.length;
-    if (sideBadge) sideBadge.textContent = `${shoppingItems.length} ítem(s)`;
-
+    if (badge) badge.textContent = `${shoppingItems.length} ítems`;
     if (!sideContainer) return;
+
     if (shoppingItems.length === 0) {
-        sideContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Todo abastecido. No hay compras pendientes.</p>`;
+        sideContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Todo abastecido. No hay compras urgentes.</p>`;
         if (checkoutBox) checkoutBox.style.display = 'none';
         return;
     }
 
     if (checkoutBox) checkoutBox.style.display = 'block';
-    sideContainer.innerHTML = '';
 
-    shoppingItems.forEach(item => {
-        const div = document.createElement('div');
-        div.style.cssText = `
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 10px; background: var(--bg-color); border-radius: 10px;
-            border-left: 3px solid var(--primary-neon);
-        `;
-        div.innerHTML = `
-            <div style="overflow: hidden;">
-                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(item.name)}</div>
-                <div style="font-size: 0.73rem; color: var(--text-muted);">Quedan: ${Number(item.quantity)} ${escapeHTML(item.unit)}</div>
-            </div>
-            <button type="button" class="btn-outline btn-restock-now" style="padding: 4px 8px; font-size: 0.75rem;" title="Marcar como comprado (+ Stock)">
-                ✓ Comprado
-            </button>
-        `;
-
-        div.querySelector('.btn-restock-now').addEventListener('click', async () => {
-            const newQty = Math.max(Number(item.quantity) + 1, Number(item.min_stock) + 2);
-            const { error } = await supabase
-                .from('inventory_items')
-                .update({ quantity: newQty, in_shopping_list: false })
-                .eq('id', item.id);
-
-            if (!error) {
-                showToast(`"${item.name}" reabastecido en despensa.`, 'success');
-                await loadInventoryItems();
-            }
-        });
-
-        sideContainer.appendChild(div);
-    });
+    sideContainer.innerHTML = shoppingItems.map(item => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-color); border-radius: 10px; border: 1px solid var(--border-card);">
+            <span style="font-size: 0.83rem; font-weight: 600; color: var(--text-main);">${escapeHTML(item.name)}</span>
+            <span style="font-size: 0.75rem; color: var(--warning-color, #f59e0b);">Actual: ${Number(item.quantity)} ${escapeHTML(item.unit)}</span>
+        </div>
+    `).join('');
 }
 
-function renderInventoryList() {
+function renderMainInventoryList() {
     const container = document.getElementById('inventoryItemsContainer');
     if (!container) return;
 
     let filtered = allItems;
-
     if (activeFilter === 'low') {
-        filtered = filtered.filter(isLowStock);
+        filtered = filtered.filter(i => Number(i.quantity) <= Number(i.min_stock));
     } else if (activeFilter === 'expiring') {
-        filtered = filtered.filter(isExpiringSoon);
+        filtered = filtered.filter(i => {
+            const d = getDaysUntilExpiry(i.expiry_date);
+            return d !== null && d <= 7;
+        });
     } else if (activeFilter !== 'all') {
         filtered = filtered.filter(i => i.category === activeFilter);
     }
 
     if (searchQuery.trim() !== '') {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(i =>
-            (i.name && i.name.toLowerCase().includes(q)) ||
-            (i.category && i.category.toLowerCase().includes(q))
-        );
+        filtered = filtered.filter(i => i.name.toLowerCase().includes(q));
     }
 
     container.innerHTML = '';
 
     if (filtered.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 2.5rem 1rem; border: 1px dashed var(--border-card); border-radius: 16px; color: var(--text-muted);">
-                <p style="font-size: 0.95rem; margin-bottom: 0.3rem;">No hay suministros en esta vista.</p>
-                <span style="font-size: 0.8rem;">Añade tus alimentos o productos de aseo desde el panel izquierdo.</span>
-            </div>
-        `;
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">No hay suministros en esta vista.</p>`;
         return;
     }
 
     filtered.forEach(item => {
-        const low = isLowStock(item);
+        const isLow = Number(item.quantity) <= Number(item.min_stock);
         const daysLeft = getDaysUntilExpiry(item.expiry_date);
-        const emoji = CATEGORY_ICONS[item.category] || '📦';
-
         let expiryBadge = '';
         if (daysLeft !== null) {
-            if (daysLeft < 0) {
-                expiryBadge = `<span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(239,68,68,0.15); color: var(--danger-color, #ef4444); font-weight: 700;">🚨 Vencido (${Math.abs(daysLeft)}d)</span>`;
-            } else if (daysLeft <= 3) {
-                expiryBadge = `<span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(239,68,68,0.15); color: var(--danger-color, #ef4444); font-weight: 700;">⏳ Vence en ${daysLeft}d</span>`;
-            } else if (daysLeft <= 7) {
-                expiryBadge = `<span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(245,158,11,0.15); color: var(--warning-color, #f59e0b); font-weight: 700;">⚠️ Vence en ${daysLeft}d</span>`;
-            } else {
-                expiryBadge = `<span style="font-size: 0.72rem; color: var(--text-muted);">📅 Vence: ${escapeHTML(item.expiry_date)}</span>`;
-            }
+            const expColor = daysLeft <= 3 ? 'var(--danger-color, #ef4444)' : daysLeft <= 7 ? 'var(--warning-color, #f59e0b)' : 'var(--text-muted)';
+            expiryBadge = `<span style="font-size: 0.74rem; color: ${expColor}; margin-left: 8px;">⏳ ${daysLeft < 0 ? 'Vencido' : `Vence en ${daysLeft}d`}</span>`;
         }
-
-        const stockBadge = low
-            ? `<span style="font-size: 0.72rem; padding: 2px 8px; border-radius: 6px; background: rgba(245,158,11,0.15); color: var(--warning-color, #f59e0b); font-weight: 700;">Stock Bajo</span>`
-            : '';
 
         const row = document.createElement('div');
         row.className = 'setting-row';
-        row.style.marginBottom = '0';
-        row.style.padding = '0.95rem 1.2rem';
-        row.style.borderLeft = `4px solid ${low ? 'var(--warning-color, #f59e0b)' : 'var(--primary-neon)'}`;
+        row.style.cssText = `margin-bottom: 0; padding: 0.9rem 1.2rem; border-left: 4px solid ${isLow ? 'var(--warning-color, #f59e0b)' : 'var(--primary-neon)'};`;
 
         row.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-                <span style="font-size: 1.35rem;">${emoji}</span>
-                <div class="setting-info">
-                    <h4 style="font-size: 0.98rem; color: var(--text-main); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        ${escapeHTML(item.name)} ${stockBadge} ${expiryBadge}
-                    </h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted);">
-                        ${escapeHTML(item.category)} • Mínimo requerido: ${Number(item.min_stock)} ${escapeHTML(item.unit)}
-                    </p>
-                </div>
+            <div class="setting-info">
+                <h4 style="font-size: 0.96rem; color: var(--text-main); margin-bottom: 2px;">
+                    ${escapeHTML(item.name)}
+                    ${item.household_id ? '<span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 6px; background: var(--bg-color); color: var(--primary-neon); margin-left: 6px;">🏠 Hogar</span>' : ''}
+                </h4>
+                <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
+                    ${escapeHTML(item.category)} • Mínimo: ${Number(item.min_stock)} ${escapeHTML(item.unit)}
+                    ${expiryBadge}
+                </p>
             </div>
-
-            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                <button type="button" class="btn-outline btn-qty-minus" style="padding: 4px 10px; font-weight: 800;">−</button>
-                <span style="min-width: 75px; text-align: center; font-size: 0.95rem; font-weight: 800; color: ${low ? 'var(--warning-color, #f59e0b)' : 'var(--text-main)'};">
-                    ${Number(item.quantity)} <small style="font-weight: 500; color: var(--text-muted);">${escapeHTML(item.unit)}</small>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="btn-outline btn-qty-minus" style="padding: 4px 10px;">−</button>
+                <span style="min-width: 65px; text-align: center; font-weight: 800; font-size: 0.95rem;">
+                    ${Number(item.quantity)} <small style="font-weight: 400; color: var(--text-muted);">${escapeHTML(item.unit)}</small>
                 </span>
-                <button type="button" class="btn-outline btn-qty-plus" style="padding: 4px 10px; font-weight: 800;">+</button>
-
-                <button type="button" class="btn-outline btn-toggle-cart" title="Enviar / Quitar de Lista de Compras" style="padding: 5px 9px; border-color: ${item.in_shopping_list ? 'var(--primary-neon)' : 'var(--border-card)'}; color: ${item.in_shopping_list ? 'var(--primary-neon)' : 'var(--text-muted)'};">
-                    🛒
-                </button>
-
-                <button type="button" class="btn-outline btn-delete-item" title="Eliminar producto" style="border-color: transparent; color: var(--danger-color, #ef4444); padding: 5px 8px;">
-                    ✕
-                </button>
+                <button type="button" class="btn-outline btn-qty-plus" style="padding: 4px 10px;">+</button>
+                <button type="button" class="btn-outline btn-del-item" style="padding: 4px 8px; border-color: transparent; color: var(--danger-color, #ef4444);">✕</button>
             </div>
         `;
 
-        // Disminuir cantidad (−)
-        row.querySelector('.btn-qty-minus').addEventListener('click', async () => {
-            const nextQty = Math.max(0, Number((Number(item.quantity) - 1).toFixed(2)));
-            const autoShop = nextQty <= Number(item.min_stock) ? true : item.in_shopping_list;
+        const updateQty = async (newQty) => {
+            const cleanQty = Math.max(0, newQty);
+            const autoShop = cleanQty <= Number(item.min_stock);
             const { error } = await supabase
                 .from('inventory_items')
-                .update({ quantity: nextQty, in_shopping_list: autoShop })
+                .update({ quantity: cleanQty, in_shopping_list: autoShop })
                 .eq('id', item.id);
 
             if (!error) {
-                item.quantity = nextQty;
+                item.quantity = cleanQty;
                 item.in_shopping_list = autoShop;
-                updateKPIsAndShoppingList();
-                renderInventoryList();
+                renderInventoryAndKPIs();
             }
-        });
+        };
 
-        // Aumentar cantidad (+)
-        row.querySelector('.btn-qty-plus').addEventListener('click', async () => {
-            const nextQty = Number((Number(item.quantity) + 1).toFixed(2));
-            const autoShop = nextQty > Number(item.min_stock) ? false : item.in_shopping_list;
-            const { error } = await supabase
-                .from('inventory_items')
-                .update({ quantity: nextQty, in_shopping_list: autoShop })
-                .eq('id', item.id);
+        row.querySelector('.btn-qty-minus').addEventListener('click', () => updateQty(Number(item.quantity) - 1));
+        row.querySelector('.btn-qty-plus').addEventListener('click', () => updateQty(Number(item.quantity) + 1));
 
-            if (!error) {
-                item.quantity = nextQty;
-                item.in_shopping_list = autoShop;
-                updateKPIsAndShoppingList();
-                renderInventoryList();
-            }
-        });
-
-        // Alternar manualmente en Lista de Compras
-        row.querySelector('.btn-toggle-cart').addEventListener('click', async () => {
-            const nextShop = !item.in_shopping_list;
-            const { error } = await supabase
-                .from('inventory_items')
-                .update({ in_shopping_list: nextShop })
-                .eq('id', item.id);
-
-            if (!error) {
-                item.in_shopping_list = nextShop;
-                updateKPIsAndShoppingList();
-                renderInventoryList();
-                showToast(nextShop ? 'Añadido a la lista de compras.' : 'Retirado de la lista de compras.', 'info');
-            }
-        });
-
-        // Eliminar ítem
-        row.querySelector('.btn-delete-item').addEventListener('click', async () => {
-            const { error } = await supabase
-                .from('inventory_items')
-                .delete()
-                .eq('id', item.id);
-
-            if (!error) {
-                allItems = allItems.filter(i => i.id !== item.id);
-                updateKPIsAndShoppingList();
-                renderInventoryList();
-                showToast('Producto eliminado de la despensa.', 'info');
-            }
+        row.querySelector('.btn-del-item').addEventListener('click', async () => {
+            await supabase.from('inventory_items').delete().eq('id', item.id);
+            allItems = allItems.filter(i => i.id !== item.id);
+            renderInventoryAndKPIs();
+            showToast('Producto eliminado de la despensa', 'info');
         });
 
         container.appendChild(row);
@@ -301,108 +197,91 @@ function renderInventoryList() {
 }
 
 function bindInventoryEvents() {
-    // 1. Crear Nuevo Producto
     const form = document.getElementById('inventoryItemForm');
     if (form) {
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nameInput = document.getElementById('invNameInput');
-            const catSelect = document.getElementById('invCategorySelect');
-            const unitSelect = document.getElementById('invUnitSelect');
-            const qtyInput = document.getElementById('invQtyInput');
-            const minInput = document.getElementById('invMinStockInput');
-            const expInput = document.getElementById('invExpiryInput');
-            const shopCheck = document.getElementById('invShoppingCheck');
-            const submitBtn = form.querySelector('button[type="submit"]');
+            const name = document.getElementById('invNameInput')?.value.trim();
+            const category = document.getElementById('invCategorySelect')?.value;
+            const unit = document.getElementById('invUnitSelect')?.value;
+            const quantity = Number(document.getElementById('invQtyInput')?.value || 0);
+            const minStock = Number(document.getElementById('invMinStockInput')?.value || 1);
+            const expiry = document.getElementById('invExpiryInput')?.value || null;
+            const manualShop = document.getElementById('invShoppingCheck')?.checked;
 
-            const name = nameInput.value.trim();
             if (!name) return;
 
-            const qty = parseFloat(qtyInput.value) || 0;
-            const minStock = parseFloat(minInput.value) || 1;
-            const inShop = shopCheck.checked || qty <= minStock;
+            const { error } = await supabase.from('inventory_items').insert({
+                user_id: currentUser.id,
+                household_id: activeHousehold ? activeHousehold.id : null,
+                name,
+                category,
+                unit,
+                quantity,
+                min_stock: minStock,
+                expiry_date: expiry,
+                in_shopping_list: manualShop || quantity <= minStock
+            });
 
-            if (submitBtn) submitBtn.disabled = true;
-
-            try {
-                const { error } = await supabase.from('inventory_items').insert({
-                    user_id: currentUser.id,
-                    name,
-                    category: catSelect.value,
-                    unit: unitSelect.value,
-                    quantity: qty,
-                    min_stock: minStock,
-                    expiry_date: expInput.value || null,
-                    in_shopping_list: inShop
-                });
-
-                if (error) throw error;
-
-                nameInput.value = '';
-                qtyInput.value = '1';
-                minInput.value = '1';
-                expInput.value = '';
-                shopCheck.checked = false;
-                showToast(`"${name}" agregado a la despensa.`, 'success');
-                await loadInventoryItems();
-            } catch (error) {
-                showToast('Error al guardar producto: ' + error.message, 'error');
-            } finally {
-                if (submitBtn) submitBtn.disabled = false;
+            if (error) {
+                showToast('Error guardando producto: ' + error.message, 'error');
+            } else {
+                form.reset();
+                showToast('Producto sincronizado en la despensa', 'success');
+                await loadInventory();
             }
         });
     }
 
-    // 2. Puente Ecosistémico: Liquidar Lista de Compras y Registrar Gasto en Flujo Financiero
+    // Puente Despensa -> Finanzas (Hogar o Personal)
     const btnCheckout = document.getElementById('btnCheckoutToFinance');
     if (btnCheckout) {
         btnCheckout.addEventListener('click', async () => {
-            const shoppingItems = allItems.filter(i => i.in_shopping_list || isLowStock(i));
-            if (shoppingItems.length === 0) return;
+            const shopping = allItems.filter(i => i.in_shopping_list || Number(i.quantity) <= Number(i.min_stock));
+            if (shopping.length === 0) return;
 
-            const costInput = document.getElementById('checkoutTotalInput');
-            const totalCost = parseFloat(costInput?.value || 0);
-            btnCheckout.disabled = true;
+            const totalCost = Number(document.getElementById('checkoutTotalInput')?.value || 0);
 
-            try {
-                // Reabastecer todos los artículos de la lista en paralelo
-                await Promise.all(shoppingItems.map(item => {
-                    const nextQty = Math.max(Number(item.quantity) + 1, Number(item.min_stock) + 2);
-                    return supabase
-                        .from('inventory_items')
-                        .update({ quantity: nextQty, in_shopping_list: false })
-                        .eq('id', item.id);
-                }));
-
-                // Si el usuario ingresó un monto, registrarlo automáticamente en finance_transactions
-                if (totalCost > 0) {
-                    const summaryNames = shoppingItems.slice(0, 3).map(i => i.name).join(', ');
-                    const extra = shoppingItems.length > 3 ? ` (+${shoppingItems.length - 3} más)` : '';
-                    await supabase.from('finance_transactions').insert({
-                        user_id: currentUser.id,
-                        title: `Compra Despensa: ${summaryNames}${extra}`,
-                        amount: totalCost,
-                        type: 'gasto',
-                        category: 'Alimentación',
-                        is_recurring: false,
-                        transaction_date: new Date().toISOString().split('T')[0]
-                    });
-                    if (costInput) costInput.value = '';
-                    showToast(`Despensa abastecida y gasto de $${totalCost.toLocaleString('es-CO')} registrado en Finanzas.`, 'success');
-                } else {
-                    showToast(`Se reabastecieron ${shoppingItems.length} producto(s) en la despensa.`, 'success');
-                }
-
-                await loadInventoryItems();
-            } catch (err) {
-                showToast('Error al procesar el reabastecimiento: ' + err.message, 'error');
-            } finally {
-                btnCheckout.disabled = false;
+            for (const item of shopping) {
+                const restockedQty = Math.max(Number(item.quantity) + 1, Number(item.min_stock) + 2);
+                await supabase
+                    .from('inventory_items')
+                    .update({ quantity: restockedQty, in_shopping_list: false })
+                    .eq('id', item.id);
             }
+
+            if (totalCost > 0) {
+                await supabase.from('finance_transactions').insert({
+                    user_id: currentUser.id,
+                    household_id: activeHousehold ? activeHousehold.id : null,
+                    author_name: currentAuthorName,
+                    title: `Compra de Despensa (${shopping.length} productos)`,
+                    amount: totalCost,
+                    type: 'gasto',
+                    category: 'Alimentación',
+                    is_recurring: false,
+                    tx_date: new Date().toISOString().slice(0, 10)
+                });
+            }
+
+            document.getElementById('checkoutTotalInput').value = '';
+            showToast('Despensa abastecida y gasto registrado en Finanzas', 'success');
+            await loadInventory();
         });
     }
 
-    // 3. Filtros por Categoría / Estado
+    document.getElementById('btnCopyShoppingList')?.addEventListener('click', () => {
+        const shopping = allItems.filter(i => i.in_shopping_list || Number(i.quantity) <= Number(i.min_stock));
+        if (shopping.length === 0) {
+            showToast('La lista de compras está vacía', 'info');
+            return;
+        }
+        const text = `🛒 Lista de Compras (${activeHousehold?.name || 'NGN'}):\n` +
+            shopping.map(i => `- ${i.name} (Actual: ${i.quantity} ${i.unit})`).join('\n');
+        navigator.clipboard.writeText(text);
+        showToast('Lista copiada al portapapeles', 'success');
+    });
+
     document.querySelectorAll('.inv-filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.inv-filter-btn').forEach(b => {
@@ -412,38 +291,12 @@ function bindInventoryEvents() {
             btn.style.borderColor = 'var(--primary-neon)';
             btn.style.color = 'var(--primary-neon)';
             activeFilter = btn.dataset.filter;
-            renderInventoryList();
+            renderMainInventoryList();
         });
     });
 
-    // 4. Buscador Instantáneo
-    const searchInput = document.getElementById('invSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            searchQuery = e.target.value;
-            renderInventoryList();
-        });
-    }
-
-    // 5. Copiar Lista de Compras al Portapapeles
-    const btnCopy = document.getElementById('btnCopyShoppingList');
-    if (btnCopy) {
-        btnCopy.addEventListener('click', async () => {
-            const shoppingItems = allItems.filter(i => i.in_shopping_list || isLowStock(i));
-            if (shoppingItems.length === 0) {
-                showToast('No hay productos pendientes en la lista de compras.', 'info');
-                return;
-            }
-
-            const lines = shoppingItems.map(i => `• ${i.name} (Actual: ${i.quantity} ${i.unit})`);
-            const text = `🛒 LISTA DE COMPRAS NGN:\n${lines.join('\n')}`;
-
-            try {
-                await navigator.clipboard.writeText(text);
-                showToast('Lista de compras copiada al portapapeles.', 'success');
-            } catch {
-                showToast('No se pudo copiar automáticamente.', 'error');
-            }
-        });
-    }
+    document.getElementById('invSearchInput')?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        renderMainInventoryList();
+    });
 }

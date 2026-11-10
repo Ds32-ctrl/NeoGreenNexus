@@ -1,7 +1,7 @@
 <!-- public/views/family-board.html -->
 <div class="settings-wrapper">
-  <!-- Cabecera del Módulo -->
-  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+  <!-- Cabecera Principal del Ecosistema Familiar -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; align-items: center; gap: 1.2rem;">
       <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -10,114 +10,366 @@
         </svg>
       </button>
       <div>
-        <h1 class="settings-title" style="margin: 0;">Tablero Compartido</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Centro de comunicación visual, avisos fijados y agenda de eventos en casa</p>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h1 class="settings-title" id="familyHeaderTitle" style="margin: 0;">Tablero Compartido</h1>
+          <span id="householdCodeBadge" class="version-badge" style="display: none; margin: 0; cursor: pointer;" title="Clic para copiar código de invitación">
+            Código: <strong id="householdCodeText">NGN-0000</strong> 📋
+          </span>
+        </div>
+        <p id="familyHeaderSub" style="color: var(--text-muted); font-size: 0.9rem; margin: 2px 0 0 0;">
+          Ecosistema familiar: notas colaborativas, flujo financiero mensual y datos clave del hogar
+        </p>
       </div>
     </div>
 
-    <!-- Contadores Rápidos del Tablero -->
-    <div style="display: flex; align-items: center; gap: 1.2rem; background: var(--panel-bg); padding: 0.7rem 1.4rem; border-radius: 16px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
-      <div style="padding-right: 1rem; border-right: 1px solid var(--border-card);">
-        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Fijados</div>
-        <span id="boardPinnedCount" style="font-size: 1.3rem; font-weight: 800; color: var(--primary-neon);">0</span>
+    <!-- Avatares de Miembros del Hogar + Selector de Mes -->
+    <div id="householdTopActions" style="display: none; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <div id="householdMembersBar" style="display: flex; align-items: center; gap: 6px; background: var(--panel-bg); padding: 0.45rem 0.9rem; border-radius: 14px; border: 1px solid var(--border-card);">
+        <!-- Inyectado dinámicamente -->
       </div>
-      <div>
-        <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Total Activos</div>
-        <span id="boardTotalCount" style="font-size: 1.3rem; font-weight: 800; color: var(--text-main);">0</span>
-      </div>
+
+      <select id="familyMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.86rem; cursor: pointer; background: var(--panel-bg);">
+        <option value="all">Todo el año</option>
+        <option value="01">Enero</option>
+        <option value="02">Febrero</option>
+        <option value="03">Marzo</option>
+        <option value="04">Abril</option>
+        <option value="05">Mayo</option>
+        <option value="06">Junio</option>
+        <option value="07">Julio</option>
+        <option value="08">Agosto</option>
+        <option value="09">Septiembre</option>
+        <option value="10">Octubre</option>
+        <option value="11">Noviembre</option>
+        <option value="12">Diciembre</option>
+      </select>
     </div>
   </div>
 
-  <!-- Contenedor Principal: Creador de Notas + Mural Interactivo -->
-  <div class="settings-container" style="grid-template-columns: 340px 1fr;">
+  <!-- =================================================================== -->
+  <!-- BLOQUE A: CONFIGURACIÓN INICIAL SI EL USUARIO NO TIENE HOGAR ACTIVO -->
+  <!-- =================================================================== -->
+  <div id="noHouseholdSetupBox" style="display: none; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
     
-    <!-- COLUMNA IZQUIERDA: FORMULARIO DE PUBLICACIÓN Y PRÓXIMOS EVENTOS -->
-    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+    <!-- Crear Nuevo Hogar -->
+    <form id="createHouseholdForm" style="background: var(--panel-bg); border: 1px solid var(--primary-neon); border-radius: 20px; padding: 1.8rem; box-shadow: var(--shadow-base);">
+      <span class="version-badge" style="margin-bottom: 0.8rem;">🏠 Nuevo Ecosistema</span>
+      <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.4rem;">Crear un Hogar Familiar</h3>
+      <p style="color: var(--text-muted); font-size: 0.86rem; margin-bottom: 1.2rem;">
+        Inicia el nodo de tu casa y obtén un código único para invitar a tu familia o compañeros de hogar.
+      </p>
+      <div style="margin-bottom: 0.8rem;">
+        <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Nombre del Hogar</label>
+        <input type="text" id="newHouseholdName" class="form-input" placeholder="Ej. Hogar Familia Gómez, Apto 402..." required>
+      </div>
+      <div style="margin-bottom: 1.2rem;">
+        <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Presupuesto Mensual Familiar ($ Opcional)</label>
+        <input type="number" id="newHouseholdBudget" class="form-input" placeholder="Ej. 2500000" min="0" step="10000">
+      </div>
+      <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0;">
+        Crear Hogar y Generar Código
+      </button>
+    </form>
+
+    <!-- Unirse a un Hogar con Código -->
+    <form id="joinHouseholdForm" style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.8rem; box-shadow: var(--shadow-base); display: flex; flex-direction: column; justify-content: space-between;">
+      <div>
+        <span class="version-badge" style="margin-bottom: 0.8rem;">🔗 Sincronización</span>
+        <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.4rem;">Unirse con Código de Invitación</h3>
+        <p style="color: var(--text-muted); font-size: 0.86rem; margin-bottom: 1.2rem;">
+          Si un miembro de tu hogar ya creó el espacio, ingresa el código (ej. <strong>NGN-4X9A</strong>) para conectarte en tiempo real.
+        </p>
+        <div style="margin-bottom: 1.2rem;">
+          <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Código del Hogar</label>
+          <input type="text" id="joinHouseholdCode" class="form-input" placeholder="NGN-XXXX" required style="text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">
+        </div>
+      </div>
+      <button type="submit" class="btn-outline" style="width: 100%; justify-content: center; padding: 0.85rem; border-color: var(--primary-neon); color: var(--primary-neon); font-weight: 700;">
+        Vincularme al Hogar
+      </button>
+    </form>
+
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- BLOQUE B: ECOSISTEMA FAMILIAR ACTIVO (KPIs + 3 PESTAÑAS INTEGRADAS) -->
+  <!-- =================================================================== -->
+  <div id="activeHouseholdWorkspace" style="display: none;">
+    
+    <!-- Fila 1: 4 Tarjetas KPI del Hogar Compartido -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.6rem;">
       
-      <!-- Formulario de Nueva Publicación -->
-      <form id="boardPostForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Publicar en el Mural</h3>
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+        <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Flujo Neto del Hogar</span>
+        <h2 id="famKpiBalance" style="font-size: 1.75rem; font-weight: 800; margin: 0.25rem 0; color: var(--primary-neon);">$0.00</h2>
+        <span id="famKpiFlowSub" style="font-size: 0.76rem; color: var(--text-muted);">Aportes: $0 | Gastos: $0</span>
+      </div>
 
-        <div style="margin-bottom: 0.8rem;">
-          <label for="postTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Título o Destinatario</label>
-          <input type="text" id="postTitleInput" class="form-input" placeholder="Ej. Reunión familiar, Para todos..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
-        </div>
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+        <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Gasto Familiar del Mes</span>
+        <h2 id="famKpiExpenses" style="font-size: 1.75rem; font-weight: 800; margin: 0.25rem 0; color: var(--danger-color, #ef4444);">$0.00</h2>
+        <span id="famKpiBudgetSub" style="font-size: 0.76rem; color: var(--text-muted);">Presupuesto hogar: Sin tope</span>
+      </div>
 
-        <div style="margin-bottom: 0.8rem;">
-          <label for="postContentInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Mensaje o Detalle</label>
-          <textarea id="postContentInput" class="form-input" rows="3" placeholder="Escribe la nota, tarea o recordatorio..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem; resize: vertical;"></textarea>
-        </div>
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+        <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Avisos y Tareas Activas</span>
+        <h2 id="famKpiPosts" style="font-size: 1.75rem; font-weight: 800; margin: 0.25rem 0; color: var(--info-color, #0ea5e9);">0</h2>
+        <span id="famKpiPinnedSub" style="font-size: 0.76rem; color: var(--text-muted);">0 fijados en el mural</span>
+      </div>
 
-        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
-          <div style="flex: 1;">
-            <label for="postCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
-            <select id="postCategorySelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
-              <option value="nota">📌 Nota Visual</option>
-              <option value="alerta">🚨 Alerta Urgente</option>
-              <option value="evento">📅 Evento / Cita</option>
-              <option value="tarea">✅ Tarea Asignada</option>
-            </select>
-          </div>
-          <div style="flex: 1;">
-            <label for="postEventDate" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha (Opcional)</label>
-            <input type="date" id="postEventDate" class="form-input" style="padding: 0.6rem; font-size: 0.82rem;">
-          </div>
-        </div>
-
-        <!-- Selector de Etiqueta de Color -->
-        <div style="margin-bottom: 1rem;">
-          <span style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Color de Tarjeta</span>
-          <div id="postColorPicker" style="display: flex; gap: 10px;">
-            <button type="button" class="color-tag-btn active" data-color="#10b981" style="width: 26px; height: 26px; border-radius: 50%; background: #10b981; border: 2px solid var(--text-main); cursor: pointer;"></button>
-            <button type="button" class="color-tag-btn" data-color="#0ea5e9" style="width: 26px; height: 26px; border-radius: 50%; background: #0ea5e9; border: 2px solid transparent; cursor: pointer;"></button>
-            <button type="button" class="color-tag-btn" data-color="#a855f7" style="width: 26px; height: 26px; border-radius: 50%; background: #a855f7; border: 2px solid transparent; cursor: pointer;"></button>
-            <button type="button" class="color-tag-btn" data-color="#f59e0b" style="width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; border: 2px solid transparent; cursor: pointer;"></button>
-            <button type="button" class="color-tag-btn" data-color="#ef4444" style="width: 26px; height: 26px; border-radius: 50%; background: #ef4444; border: 2px solid transparent; cursor: pointer;"></button>
-          </div>
-        </div>
-
-        <!-- Opción de Fijar Aviso -->
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1rem;">
-          <input type="checkbox" id="postPinnedCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
-          Fijar como aviso destacado arriba
-        </label>
-
-        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
-          Publicar en Tablero
-        </button>
-      </form>
-
-      <!-- Mini Agenda de Próximos Eventos -->
-      <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
-        <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.8rem;">📅 Próximos Eventos</h4>
-        <div id="upcomingEventsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
-          <p style="color: var(--text-muted); font-size: 0.82rem;">Sin eventos programados.</p>
-        </div>
+      <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+        <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Datos Fijos & Despensa</span>
+        <h2 id="famKpiVaultCount" style="font-size: 1.75rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color, #f59e0b);">0</h2>
+        <span id="famKpiSharedSync" style="font-size: 0.76rem; color: var(--text-muted);">Credenciales y suministros</span>
       </div>
 
     </div>
 
-    <!-- COLUMNA DERECHA: MURAL DE NOTAS Y FILTROS -->
-    <div class="settings-content" style="padding: 2.2rem;">
-      
-      <!-- Barra de Filtros y Buscador Rápido -->
-      <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.8rem; flex-wrap: wrap; padding-bottom: 1.2rem; border-bottom: 1px solid var(--border-card);">
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button type="button" class="btn-outline board-filter-btn active" data-category="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
-          <button type="button" class="btn-outline board-filter-btn" data-category="nota">📌 Notas</button>
-          <button type="button" class="btn-outline board-filter-btn" data-category="alerta">🚨 Alertas</button>
-          <button type="button" class="btn-outline board-filter-btn" data-category="evento">📅 Eventos</button>
-          <button type="button" class="btn-outline board-filter-btn" data-category="tarea">✅ Tareas</button>
+    <!-- Barra de Pestañas del Ecosistema Familiar -->
+    <div style="display: flex; gap: 10px; margin-bottom: 1.6rem; flex-wrap: wrap; border-bottom: 1px solid var(--border-card); padding-bottom: 0.9rem;">
+      <button type="button" class="btn-outline fam-tab-btn active" data-tab="tabMural" style="border-color: var(--primary-neon); color: var(--primary-neon); font-weight: 700;">
+        📌 Mural & Agenda Familiar
+      </button>
+      <button type="button" class="btn-outline fam-tab-btn" data-tab="tabFlujo" style="font-weight: 700;">
+        💰 Flujo Mensual Conjunto
+      </button>
+      <button type="button" class="btn-outline fam-tab-btn" data-tab="tabDatos" style="font-weight: 700;">
+        🔑 Datos Importantes del Hogar
+      </button>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- PESTAÑA 1: MURAL COLABORATIVO, TAREAS ASIGNADAS Y AGENDA        -->
+    <!-- =============================================================== -->
+    <div id="tabMural" class="fam-tab-pane">
+      <div class="settings-container" style="grid-template-columns: 340px 1fr;">
+        
+        <!-- Sidebar Izquierdo: Publicar Nota / Asignar a Miembro -->
+        <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.6rem;">
+          <form id="boardPostForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Publicar al Hogar</h3>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label for="postTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Título o Asunto</label>
+              <input type="text" id="postTitleInput" class="form-input" placeholder="Ej. Comprar gas, Reunión domingo..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label for="postContentInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Mensaje o Detalle</label>
+              <textarea id="postContentInput" class="form-input" rows="3" placeholder="Escribe la nota, tarea o recordatorio familiar..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem; resize: vertical;"></textarea>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+              <div style="flex: 1;">
+                <label for="postCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
+                <select id="postCategorySelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+                  <option value="nota">📌 Nota Visual</option>
+                  <option value="alerta">🚨 Alerta Urgente</option>
+                  <option value="evento">📅 Evento / Cita</option>
+                  <option value="tarea">✅ Tarea Asignada</option>
+                </select>
+              </div>
+              <div style="flex: 1;">
+                <label for="postAssignedSelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Responsable</label>
+                <select id="postAssignedSelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+                  <option value="Todos">👨‍👩‍👧‍👦 Todos</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label for="postEventDate" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha Límite / Evento (Opcional)</label>
+              <input type="date" id="postEventDate" class="form-input" style="padding: 0.6rem; font-size: 0.82rem;">
+            </div>
+
+            <div style="margin-bottom: 1rem;">
+              <span style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Color de Tarjeta</span>
+              <div id="postColorPicker" style="display: flex; gap: 10px;">
+                <button type="button" class="color-tag-btn active" data-color="#10b981" style="width: 26px; height: 26px; border-radius: 50%; background: #10b981; border: 2px solid var(--text-main); cursor: pointer;"></button>
+                <button type="button" class="color-tag-btn" data-color="#0ea5e9" style="width: 26px; height: 26px; border-radius: 50%; background: #0ea5e9; border: 2px solid transparent; cursor: pointer;"></button>
+                <button type="button" class="color-tag-btn" data-color="#a855f7" style="width: 26px; height: 26px; border-radius: 50%; background: #a855f7; border: 2px solid transparent; cursor: pointer;"></button>
+                <button type="button" class="color-tag-btn" data-color="#f59e0b" style="width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; border: 2px solid transparent; cursor: pointer;"></button>
+                <button type="button" class="color-tag-btn" data-color="#ef4444" style="width: 26px; height: 26px; border-radius: 50%; background: #ef4444; border: 2px solid transparent; cursor: pointer;"></button>
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1rem;">
+              <input type="checkbox" id="postPinnedCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+              Fijar aviso destacado para todos
+            </label>
+
+            <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+              Publicar en el Hogar
+            </button>
+          </form>
+
+          <!-- Próximos Eventos de la Familia -->
+          <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
+            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.8rem;">📅 Agenda Familiar</h4>
+            <div id="upcomingEventsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
+              <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sin eventos programados.</p>
+            </div>
+          </div>
         </div>
 
-        <input type="search" id="boardSearchInput" class="form-input" placeholder="Filtrar por texto..." style="max-width: 220px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
-      </div>
+        <!-- Panel Derecho: Mural de Tarjetas -->
+        <div class="settings-content" style="padding: 2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.6rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid var(--border-card);">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn-outline board-filter-btn active" data-category="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
+              <button type="button" class="btn-outline board-filter-btn" data-category="nota">📌 Notas</button>
+              <button type="button" class="btn-outline board-filter-btn" data-category="alerta">🚨 Alertas</button>
+              <button type="button" class="btn-outline board-filter-btn" data-category="evento">📅 Eventos</button>
+              <button type="button" class="btn-outline board-filter-btn" data-category="tarea">✅ Tareas</button>
+            </div>
+            <input type="search" id="boardSearchInput" class="form-input" placeholder="Buscar por texto o autor..." style="max-width: 220px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+          </div>
 
-      <!-- Cuadrícula de Tarjetas del Tablero -->
-      <div id="boardPostsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem;">
-        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; grid-column: 1 / -1; padding: 2rem 0;">Cargando publicaciones del tablero...</p>
-      </div>
+          <div id="boardPostsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem;">
+            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; grid-column: 1 / -1; padding: 2rem 0;">Sincronizando mural familiar...</p>
+          </div>
+        </div>
 
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- PESTAÑA 2: FLUJO MENSUAL CONJUNTO (FINANZAS DEL HOGAR)          -->
+    <!-- =============================================================== -->
+    <div id="tabFlujo" class="fam-tab-pane" style="display: none;">
+      <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+        
+        <!-- Sidebar: Registrar Aporte o Gasto del Hogar -->
+        <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.6rem;">
+          <form id="familyFinanceForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Flujo del Hogar</h3>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem;">
+              <button type="button" class="btn-outline fam-tx-type active" data-type="gasto" style="justify-content: center; padding: 0.6rem; border-color: var(--danger-color, #ef4444); color: var(--danger-color, #ef4444); font-weight: 700;">
+                ↓ Gasto Hogar
+              </button>
+              <button type="button" class="btn-outline fam-tx-type" data-type="ingreso" style="justify-content: center; padding: 0.6rem; font-weight: 700;">
+                ↑ Aporte al Fondo
+              </button>
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto</label>
+              <input type="text" id="famTxTitle" class="form-input" placeholder="Ej. Recibo de Luz, Mercado mensual, Aporte..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+              <div style="flex: 1.2;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Monto ($)</label>
+                <input type="number" id="famTxAmount" class="form-input" placeholder="0.00" min="0.01" step="0.01" required style="padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 700;">
+              </div>
+              <div style="flex: 1;">
+                <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
+                <select id="famTxCategory" class="form-input" style="padding: 0.65rem; font-size: 0.84rem; cursor: pointer;">
+                  <option value="Servicios">⚡ Servicios Fijos</option>
+                  <option value="Hogar">🏠 Arriendo / Hogar</option>
+                  <option value="Alimentación">🛒 Alimentación</option>
+                  <option value="Ahorro">🏦 Aporte / Fondo</option>
+                  <option value="Otros">📦 Otros</option>
+                </select>
+              </div>
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1rem;">
+              <input type="checkbox" id="famTxRecurring" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+              Es un pago o aporte fijo mensual del hogar
+            </label>
+
+            <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+              Registrar en Libro Familiar
+            </button>
+          </form>
+
+          <!-- Meta Presupuestal del Hogar -->
+          <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
+            <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">🎯 Tope Mensual del Hogar</h4>
+            <div style="display: flex; gap: 8px;">
+              <input type="number" id="famBudgetInput" class="form-input" placeholder="Presupuesto ($)" min="0" step="10000" style="padding: 0.55rem 0.8rem; font-size: 0.85rem;">
+              <button type="button" id="btnSaveFamBudget" class="btn-outline" style="padding: 0.55rem 1rem; white-space: nowrap;">Actualizar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel Derecho: Aportes por Miembro + Libro Mayor Familiar -->
+        <div class="settings-content" style="padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem;">
+          
+          <!-- Resumen de Participación por Miembro -->
+          <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.4rem;">
+            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.9rem;">Participación y Pagos por Miembro (Periodo Seleccionado)</h3>
+            <div id="famMemberContributions" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Sin movimientos familiares registrados en este mes.</p>
+            </div>
+          </div>
+
+          <!-- Lista de Movimientos del Hogar -->
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Movimientos Compartidos del Hogar</h3>
+            <div id="famTransactionsList" style="display: flex; flex-direction: column; gap: 0.7rem; max-height: 420px; overflow-y: auto;">
+              <p style="color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 1.5rem 0;">No hay movimientos registrados.</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- =============================================================== -->
+    <!-- PESTAÑA 3: BÓVEDA DE DATOS IMPORTANTES DEL HOGAR                -->
+    <!-- =============================================================== -->
+    <div id="tabDatos" class="fam-tab-pane" style="display: none;">
+      <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+        
+        <!-- Sidebar: Añadir Dato Importante -->
+        <div class="settings-sidebar">
+          <form id="importantDataForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; color: var(--text-main);">+ Guardar Dato del Hogar</h3>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">
+              Guarda números de contrato para pago de recibos, claves Wi-Fi o teléfonos de emergencia para que toda la familia los tenga a un clic.
+            </p>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Etiqueta o Servicio</label>
+              <input type="text" id="impLabelInput" class="form-input" placeholder="Ej. Contrato Luz (ESSA), Clave Wi-Fi..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+            </div>
+
+            <div style="margin-bottom: 0.8rem;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Valor / Referencia / Dato</label>
+              <input type="text" id="impValueInput" class="form-input" placeholder="Ej. NIC 4829103, Familia2026*..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+            </div>
+
+            <div style="margin-bottom: 1.1rem;">
+              <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
+              <select id="impCategorySelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
+                <option value="servicios">💡 Cuentas / Referencias de Servicios</option>
+                <option value="wifi">📶 Wi-Fi y Accesos Digitales</option>
+                <option value="emergencia">🚑 Emergencias y Administración</option>
+                <option value="general">📋 Reglas / Datos Generales</option>
+              </select>
+            </div>
+
+            <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+              Guardar en Bóveda Familiar
+            </button>
+          </form>
+        </div>
+
+        <!-- Panel Derecho: Tarjetas de Datos Importantes Copiables en 1 Clic -->
+        <div class="settings-content" style="padding: 2rem;">
+          <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.2rem;">Directorio y Referencias Fijas de Casa</h3>
+          <div id="importantDataGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+            <p style="color: var(--text-muted); font-size: 0.9rem; grid-column: 1 / -1; text-align: center; padding: 2rem 0;">
+              Aún no hay datos fijos registrados en el hogar.
+            </p>
+          </div>
+        </div>
+
+      </div>
     </div>
 
   </div>
