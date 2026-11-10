@@ -36,6 +36,14 @@ export async function initFinance() {
         return;
     }
     currentUser = user;
+
+    // Reiniciar estados al montar la vista para evitar desincronización con el DOM
+    currentScope = 'personal';
+    selectedTxType = 'gasto';
+    selectedMonth = 'all';
+    activeListFilter = 'all';
+    searchQuery = '';
+
     const meta = user.user_metadata || {};
     currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
     monthlyBudgetLimit = Number(meta.monthly_budget_limit || localStorage.getItem('ngn_budget_limit') || 0);
@@ -64,7 +72,7 @@ async function loadTransactions() {
         let query = supabase
             .from('finance_transactions')
             .select('*')
-            .order('tx_date', { ascending: false })
+            .order('transaction_date', { ascending: false })
             .order('created_at', { ascending: false });
 
         if (currentScope === 'household' && activeHousehold) {
@@ -80,14 +88,14 @@ async function loadTransactions() {
         recalculateAndRender();
     } catch (err) {
         console.error('Error cargando finanzas:', err);
-        showToast('Error al sincronizar libro mayor', 'error');
+        showToast('Error al sincronizar libro mayor: ' + (err.message || ''), 'error');
     }
 }
 
 function getPeriodFilteredTransactions() {
     if (selectedMonth === 'all') return allTransactions;
     return allTransactions.filter(tx => {
-        const d = tx.tx_date || tx.created_at || '';
+        const d = tx.transaction_date || tx.created_at || '';
         return d.slice(5, 7) === selectedMonth;
     });
 }
@@ -230,6 +238,7 @@ function renderLedgerList(periodList) {
         const isInc = tx.type === 'ingreso';
         const color = isInc ? '#10b981' : 'var(--danger-color, #ef4444)';
         const sign = isInc ? '+' : '-';
+        const displayDate = tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '');
         const sharedBadge = tx.household_id
             ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: rgba(16, 185, 129, 0.15); color: var(--primary-neon); margin-left: 6px;">🏠 Hogar (${escapeHTML(tx.author_name || 'Miembro')})</span>`
             : '';
@@ -246,7 +255,7 @@ function renderLedgerList(periodList) {
                     ${sharedBadge}
                 </h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
-                    ${escapeHTML(tx.category || 'General')} • Fecha: ${escapeHTML(tx.tx_date || '')}
+                    ${escapeHTML(tx.category || 'General')} • Fecha: ${escapeHTML(displayDate)}
                 </p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -314,12 +323,15 @@ function bindFinanceEvents() {
             e.preventDefault();
             const title = document.getElementById('txTitleInput')?.value.trim();
             const amount = Number(document.getElementById('txAmountInput')?.value);
-            const txDate = document.getElementById('txDateInput')?.value;
+            const transactionDate = document.getElementById('txDateInput')?.value;
             const category = document.getElementById('txCategorySelect')?.value;
             const isRecurring = document.getElementById('txRecurringCheck')?.checked;
             const shareWithHouse = document.getElementById('txShareHouseholdCheck')?.checked || currentScope === 'household';
 
-            if (!title || !amount) return;
+            if (!title || !amount || amount <= 0) {
+                showToast('Ingresa un concepto y un monto válido mayor a 0', 'info');
+                return;
+            }
 
             const targetHouseholdId = (shareWithHouse && activeHousehold) ? activeHousehold.id : null;
 
@@ -332,7 +344,7 @@ function bindFinanceEvents() {
                 type: selectedTxType,
                 category,
                 is_recurring: isRecurring,
-                tx_date: txDate || new Date().toISOString().slice(0, 10)
+                transaction_date: transactionDate || new Date().toISOString().slice(0, 10)
             });
 
             if (error) {
@@ -355,7 +367,11 @@ function bindFinanceEvents() {
             if (activeHousehold && document.getElementById('txShareHouseholdCheck')) {
                 document.getElementById('txShareHouseholdCheck').checked = true;
             }
-            document.getElementById('txAmountInput').focus();
+            const amountInput = document.getElementById('txAmountInput');
+            if (amountInput) {
+                amountInput.focus();
+                showToast(`Plantilla "${btn.dataset.title}" cargada. Ingresa el monto ($).`, 'info');
+            }
         });
     });
 
@@ -407,7 +423,7 @@ function bindFinanceEvents() {
         const csvContent = [
             headers.join(','),
             ...rows.map(r => [
-                r.tx_date,
+                r.transaction_date || (r.created_at ? r.created_at.slice(0, 10) : ''),
                 `"${(r.title || '').replace(/"/g, '""')}"`,
                 r.type,
                 r.category,

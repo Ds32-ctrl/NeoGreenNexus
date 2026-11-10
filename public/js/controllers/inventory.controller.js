@@ -20,6 +20,7 @@ function escapeHTML(str = '') {
         .replace(/'/g, '&#039;');
 }
 
+// Dentro de initInventory() en public/js/controllers/inventory.controller.js:
 export async function initInventory() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -27,6 +28,8 @@ export async function initInventory() {
         return;
     }
     currentUser = user;
+    activeFilter = 'all';
+    searchQuery = '';
     const meta = user.user_metadata || {};
     currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
 
@@ -251,7 +254,7 @@ function bindInventoryEvents() {
             }
 
             if (totalCost > 0) {
-                await supabase.from('finance_transactions').insert({
+                const { error: finErr } = await supabase.from('finance_transactions').insert({
                     user_id: currentUser.id,
                     household_id: activeHousehold ? activeHousehold.id : null,
                     author_name: currentAuthorName,
@@ -260,8 +263,9 @@ function bindInventoryEvents() {
                     type: 'gasto',
                     category: 'Alimentación',
                     is_recurring: false,
-                    tx_date: new Date().toISOString().slice(0, 10)
+                    transaction_date: new Date().toISOString().slice(0, 10)
                 });
+                if (finErr) console.error('Error registrando compra en finanzas:', finErr);
             }
 
             document.getElementById('checkoutTotalInput').value = '';

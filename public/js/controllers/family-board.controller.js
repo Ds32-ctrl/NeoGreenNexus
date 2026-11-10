@@ -57,6 +57,8 @@ export async function initFamilyBoard() {
     currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
     selectedColor = '#10b981';
     selectedTxType = 'gasto';
+    activeCategory = 'all';
+    searchQuery = '';
 
     // Mes actual por defecto en el filtro
     const currentMonthStr = String(new Date().getMonth() + 1).padStart(2, '0');
@@ -141,7 +143,7 @@ async function loadAllFamilyData() {
                 .from('finance_transactions')
                 .select('*')
                 .eq('household_id', activeHousehold.id)
-                .order('tx_date', { ascending: false })
+                .order('transaction_date', { ascending: false })
                 .order('created_at', { ascending: false }),
             supabase
                 .from('household_important_data')
@@ -153,6 +155,8 @@ async function loadAllFamilyData() {
                 .select('id, in_shopping_list')
                 .eq('household_id', activeHousehold.id)
         ]);
+
+        if (txRes.error) console.error('Error cargando transacciones del hogar:', txRes.error);
 
         allPosts = postsRes.data || [];
         familyTransactions = txRes.data || [];
@@ -172,7 +176,7 @@ async function loadAllFamilyData() {
 function getFilteredTransactions() {
     if (selectedMonth === 'all') return familyTransactions;
     return familyTransactions.filter(tx => {
-        const dateStr = tx.tx_date || tx.created_at || '';
+        const dateStr = tx.transaction_date || tx.created_at || '';
         return dateStr.slice(5, 7) === selectedMonth;
     });
 }
@@ -354,7 +358,7 @@ function renderFamilyFinanceFlow() {
 
     const filtered = getFilteredTransactions();
 
-    // 1. Calcular participación por miembro (Aportes + Gastos pagados por cada uno)
+    // 1. Calcular participación por miembro
     const memberTotals = {};
     let totalMovement = 0;
 
@@ -402,6 +406,7 @@ function renderFamilyFinanceFlow() {
         const isIncome = tx.type === 'ingreso';
         const color = isIncome ? '#10b981' : 'var(--danger-color, #ef4444)';
         const sign = isIncome ? '+' : '-';
+        const displayDate = tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '');
         const row = document.createElement('div');
         row.className = 'setting-row';
         row.style.cssText = 'margin-bottom: 0; padding: 0.85rem 1.2rem;';
@@ -413,7 +418,7 @@ function renderFamilyFinanceFlow() {
                     ${tx.is_recurring ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--primary-neon); margin-left: 6px;">🔄 Fijo</span>' : ''}
                 </h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
-                    ${escapeHTML(tx.category)} • Registrado por: <strong>${escapeHTML(tx.author_name || 'Miembro')}</strong> • ${escapeHTML(tx.tx_date || '')}
+                    ${escapeHTML(tx.category)} • Registrado por: <strong>${escapeHTML(tx.author_name || 'Miembro')}</strong> • ${escapeHTML(displayDate)}
                 </p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -569,7 +574,7 @@ function bindWorkspaceEvents() {
         });
     }
 
-    // 3. Eventos del Mural (Color, Publicación, Filtros)
+    // 3. Eventos del Mural
     const colorBtns = document.querySelectorAll('.color-tag-btn');
     colorBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -677,7 +682,7 @@ function bindWorkspaceEvents() {
                 type: selectedTxType,
                 category,
                 is_recurring: isRecurring,
-                tx_date: new Date().toISOString().slice(0, 10)
+                transaction_date: new Date().toISOString().slice(0, 10)
             });
 
             if (error) {
