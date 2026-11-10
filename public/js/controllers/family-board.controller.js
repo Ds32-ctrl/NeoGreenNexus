@@ -181,17 +181,35 @@ function getFilteredTransactions() {
     });
 }
 
+function isFamilyReserveTx(tx) {
+    if (tx.type === 'ingreso') return false;
+    const cat = (tx.category || '').trim();
+    const title = (tx.title || '').toLowerCase();
+    return ['Ahorro', 'Fondo de Emergencia', 'Reserva'].includes(cat) || title.includes('fondo de emergencia');
+}
+
 function updateEcosystemKPIs(sharedShoppingCount = 0) {
     const filteredTx = getFilteredTransactions();
     let totalIncome = 0;
-    let totalExpense = 0;
+    let operationalExpense = 0;
+    let emergencyReserve = 0;
 
     filteredTx.forEach(t => {
-        if (t.type === 'ingreso') totalIncome += Number(t.amount || 0);
-        else totalExpense += Number(t.amount || 0);
+        const amt = Number(t.amount || 0);
+        if (t.type === 'ingreso') {
+            totalIncome += amt;
+        } else if (isFamilyReserveTx(t)) {
+            emergencyReserve += amt;
+        } else {
+            operationalExpense += amt;
+        }
     });
 
-    const net = totalIncome - totalExpense;
+    // Liquidez disponible en caja (después de gastos y después de separar el Fondo de Emergencia)
+    const availableCash = totalIncome - operationalExpense - emergencyReserve;
+    // Utilidad Neta (Excedente real del hogar = Reserva apartada + caja disponible)
+    const netSurplus = totalIncome - operationalExpense;
+
     const balanceEl = document.getElementById('famKpiBalance');
     const flowSubEl = document.getElementById('famKpiFlowSub');
     const expEl = document.getElementById('famKpiExpenses');
@@ -202,17 +220,20 @@ function updateEcosystemKPIs(sharedShoppingCount = 0) {
     const syncSubEl = document.getElementById('famKpiSharedSync');
 
     if (balanceEl) {
-        balanceEl.textContent = formatCOP(net);
-        balanceEl.style.color = net >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
+        balanceEl.textContent = formatCOP(availableCash);
+        balanceEl.style.color = availableCash >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
     }
-    if (flowSubEl) flowSubEl.textContent = `Aportes: ${formatCOP(totalIncome)} | Gastos: ${formatCOP(totalExpense)}`;
-    if (expEl) expEl.textContent = formatCOP(totalExpense);
+    if (flowSubEl) {
+        flowSubEl.textContent = `Aportes: ${formatCOP(totalIncome)} | Fondo Emergencia: ${formatCOP(emergencyReserve > 0 ? emergencyReserve : Math.max(0, netSurplus))}`;
+    }
+    if (expEl) expEl.textContent = formatCOP(operationalExpense);
 
     if (budgetSubEl) {
         const limit = Number(activeHousehold?.monthly_budget || 0);
         if (limit > 0) {
-            const pct = Math.min(100, Math.round((totalExpense / limit) * 100));
-            budgetSubEl.textContent = `${pct}% del tope (${formatCOP(limit)})`;
+            const pct = Math.min(100, Number(((operationalExpense / limit) * 100).toFixed(2)));
+            const resPct = Number(((emergencyReserve / limit) * 100).toFixed(2));
+            budgetSubEl.textContent = `Operativo: ${pct}% | Reserva: ${resPct}% (Tope: ${formatCOP(limit)})`;
         } else {
             budgetSubEl.textContent = 'Presupuesto hogar: Sin tope fijo';
         }
@@ -358,37 +379,48 @@ function renderFamilyFinanceFlow() {
 
     const filtered = getFilteredTransactions();
 
-    // 1. Calcular participación por miembro
+    // 1. Libro Auxiliar de Participación por Miembro (Aportes, Pagos Operativos y Reserva Fondo)
     const memberTotals = {};
-    let totalMovement = 0;
+    let totalContributed = 0;
 
     filtered.forEach(tx => {
         const author = tx.author_name || 'Miembro';
         const amt = Number(tx.amount || 0);
         if (!memberTotals[author]) {
-            memberTotals[author] = { aportes: 0, pagos: 0, total: 0 };
+            memberTotals[author] = { aportes: 0, pagos: 0, reservas: 0 };
         }
-        if (tx.type === 'ingreso') memberTotals[author].aportes += amt;
-        else memberTotals[author].pagos += amt;
-        memberTotals[author].total += amt;
-        totalMovement += amt;
+        if (tx.type === 'ingreso') {
+            memberTotals[author].aportes += amt;
+            totalContributed += amt;
+        } else if (isFamilyReserveTx(tx)) {
+            memberTotals[author].reservas += amt;
+        } else {
+            memberTotals[author].pagos += amt;
+        }
     });
 
     const authors = Object.keys(memberTotals);
     if (authors.length === 0) {
-        contribContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra un pago de servicio o aporte para ver el balance por integrante.</p>`;
+        contribContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra los aportes o gastos para ver el Libro Auxiliar de Participación.</p>`;
     } else {
         contribContainer.innerHTML = authors.map(name => {
             const info = memberTotals[name];
-            const pct = totalMovement > 0 ? Math.round((info.total / totalMovement) * 100) : 0;
+            const shareBase = info.aportes > 0 ? info.aportes : (info.pagos + info.reservas);
+            const pct = totalContributed > 0
+                ? Math.round((info.aportes / totalContributed) * 100)
+                : 50;
             return `
                 <div>
-                    <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px;">
-                        <span style="font-weight: 700; color: var(--text-main);">👤 ${escapeHTML(name)}</span>
-                        <span style="color: var(--text-muted);">Pagos directos: <strong style="color: var(--danger-color, #ef4444);">${formatCOP(info.pagos)}</strong> | Aportes al fondo: <strong style="color: #10b981;">${formatCOP(info.aportes)}</strong> (${pct}%)</span>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
+                        <span style="font-weight: 700; color: var(--text-main);">👤 ${escapeHTML(name)} (${pct}% del Fondo)</span>
+                        <span style="color: var(--text-muted);">
+                            Aportado: <strong style="color: #10b981;">${formatCOP(info.aportes)}</strong> |
+                            Gastos ejecutados: <strong style="color: var(--danger-color, #ef4444);">${formatCOP(info.pagos)}</strong> |
+                            Reserva: <strong style="color: #0ea5e9;">${formatCOP(info.reservas)}</strong>
+                        </span>
                     </div>
                     <div style="width: 100%; height: 8px; background: var(--panel-bg); border-radius: 8px; overflow: hidden;">
-                        <div style="width: ${pct}%; height: 100%; background: var(--primary-neon);"></div>
+                        <div style="width: ${Math.min(100, pct)}%; height: 100%; background: var(--primary-neon);"></div>
                     </div>
                 </div>
             `;
@@ -404,21 +436,30 @@ function renderFamilyFinanceFlow() {
 
     filtered.forEach(tx => {
         const isIncome = tx.type === 'ingreso';
-        const color = isIncome ? '#10b981' : 'var(--danger-color, #ef4444)';
-        const sign = isIncome ? '+' : '-';
+        const isReserve = isFamilyReserveTx(tx);
+        const color = isIncome ? '#10b981' : isReserve ? '#0ea5e9' : 'var(--danger-color, #ef4444)';
+        const sign = isIncome ? '+' : isReserve ? '⇄ -' : '-';
         const displayDate = tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '');
+
+        const badge = isIncome
+            ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: rgba(16,185,129,0.12); color: #10b981; margin-left: 6px;">Aporte</span>`
+            : isReserve
+                ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: rgba(14,165,233,0.15); color: #0ea5e9; margin-left: 6px;">🏦 Reserva / Fondo</span>`
+                : (tx.is_recurring
+                    ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--primary-neon); margin-left: 6px;">🔄 Gasto Fijo</span>`
+                    : `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--text-muted); margin-left: 6px;">📊 Gasto Variable</span>`);
+
         const row = document.createElement('div');
         row.className = 'setting-row';
-        row.style.cssText = 'margin-bottom: 0; padding: 0.85rem 1.2rem;';
+        row.style.cssText = `margin-bottom: 0; padding: 0.85rem 1.2rem; border-left: 4px solid ${color};`;
 
         row.innerHTML = `
             <div class="setting-info">
                 <h4 style="font-size: 0.94rem; color: var(--text-main); margin-bottom: 2px;">
-                    ${escapeHTML(tx.title)}
-                    ${tx.is_recurring ? '<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--primary-neon); margin-left: 6px;">🔄 Fijo</span>' : ''}
+                    ${escapeHTML(tx.title)} ${badge}
                 </h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
-                    ${escapeHTML(tx.category)} • Registrado por: <strong>${escapeHTML(tx.author_name || 'Miembro')}</strong> • ${escapeHTML(displayDate)}
+                    ${escapeHTML(tx.category)} • Por: <strong>${escapeHTML(tx.author_name || 'Miembro')}</strong> • ${escapeHTML(displayDate)}
                 </p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -643,8 +684,9 @@ function bindWorkspaceEvents() {
         });
     }
 
-    // 4. Eventos de Flujo Mensual Conjunto
+    // 4. Eventos de Flujo Mensual Conjunto (Gasto / Aporte / Reserva)
     const txTypeBtns = document.querySelectorAll('.fam-tx-type');
+    const famCatSelect = document.getElementById('famTxCategory');
     txTypeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             txTypeBtns.forEach(b => {
@@ -654,9 +696,19 @@ function bindWorkspaceEvents() {
             });
             btn.classList.add('active');
             selectedTxType = btn.dataset.type;
-            const activeCol = selectedTxType === 'ingreso' ? '#10b981' : 'var(--danger-color, #ef4444)';
+            const activeCol = selectedTxType === 'ingreso'
+                ? '#10b981'
+                : selectedTxType === 'reserva'
+                    ? '#0ea5e9'
+                    : 'var(--danger-color, #ef4444)';
             btn.style.borderColor = activeCol;
             btn.style.color = activeCol;
+
+            if (famCatSelect) {
+                if (selectedTxType === 'ingreso') famCatSelect.value = 'Aporte';
+                else if (selectedTxType === 'reserva') famCatSelect.value = 'Ahorro';
+                else if (['Ahorro', 'Aporte'].includes(famCatSelect.value)) famCatSelect.value = 'Hogar';
+            }
         });
     });
 
@@ -668,10 +720,13 @@ function bindWorkspaceEvents() {
 
             const title = document.getElementById('famTxTitle')?.value.trim();
             const amount = Number(document.getElementById('famTxAmount')?.value);
-            const category = document.getElementById('famTxCategory')?.value;
+            let category = document.getElementById('famTxCategory')?.value;
             const isRecurring = document.getElementById('famTxRecurring')?.checked;
 
             if (!title || !amount) return;
+
+            const dbType = selectedTxType === 'ingreso' ? 'ingreso' : 'gasto';
+            if (selectedTxType === 'reserva') category = 'Ahorro';
 
             const { error } = await supabase.from('finance_transactions').insert({
                 user_id: currentUser.id,
@@ -679,7 +734,7 @@ function bindWorkspaceEvents() {
                 author_name: currentAuthorName,
                 title,
                 amount,
-                type: selectedTxType,
+                type: dbType,
                 category,
                 is_recurring: isRecurring,
                 transaction_date: new Date().toISOString().slice(0, 10)
@@ -689,7 +744,12 @@ function bindWorkspaceEvents() {
                 showToast('Error al registrar movimiento: ' + error.message, 'error');
             } else {
                 famFinForm.reset();
-                showToast('Movimiento sumado al flujo familiar', 'success');
+                showToast(
+                    selectedTxType === 'reserva'
+                        ? 'Reserva sumada al Fondo de Emergencia del Hogar'
+                        : 'Movimiento sumado al flujo familiar',
+                    'success'
+                );
                 await loadAllFamilyData();
             }
         });

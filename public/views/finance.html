@@ -11,18 +11,20 @@
       </button>
       <div>
         <h1 class="settings-title" style="margin: 0;">Flujo Financiero</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Auditoría de liquidez, control presupuestario, pagos fijos y libro mayor</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Contabilidad neutral, presupuesto base cero, reservas patrimoniales y libro mayor</p>
       </div>
     </div>
+
     <!-- Selector de Alcance: Personal vs Hogar -->
-      <div id="finScopeToggleBox" style="display: none; background: var(--bg-color); padding: 4px; border-radius: 12px; border: 1px solid var(--border-card);">
-        <button type="button" class="btn-outline fin-scope-btn active" data-scope="personal" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none; background: var(--panel-bg); color: var(--primary-neon); font-weight: 700;">
-          👤 Personal
-        </button>
-        <button type="button" class="btn-outline fin-scope-btn" data-scope="household" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none;">
-          🏠 Hogar Familiar
-        </button>
-      </div>
+    <div id="finScopeToggleBox" style="display: none; background: var(--bg-color); padding: 4px; border-radius: 12px; border: 1px solid var(--border-card);">
+      <button type="button" class="btn-outline fin-scope-btn active" data-scope="personal" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none; background: var(--panel-bg); color: var(--primary-neon); font-weight: 700;">
+        👤 Personal
+      </button>
+      <button type="button" class="btn-outline fin-scope-btn" data-scope="household" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; border: none;">
+        🏠 Hogar Familiar
+      </button>
+    </div>
+
     <!-- Selector de Periodo y Exportación CSV -->
     <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
       <select id="finMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.88rem; cursor: pointer; background: var(--panel-bg);">
@@ -52,41 +54,41 @@
     </div>
   </div>
 
-  <!-- Fila 1: 4 Tarjetas KPI Financieras -->
+  <!-- Fila 1: 4 Tarjetas KPI Financieras con Separación Contable -->
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
     
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Balance Disponible</span>
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Liquidez Disponible (Caja)</span>
       <h2 id="finNetBalance" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--primary-neon);">$0.00</h2>
-      <span id="finBalanceStatus" style="font-size: 0.78rem; color: var(--text-muted);">Liquidez neta del periodo</span>
+      <span id="finBalanceStatus" style="font-size: 0.78rem; color: var(--text-muted);">Excedente libre: $0 | En Reserva: $0</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingresos Totales</span>
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingresos Operativos</span>
       <h2 id="finTotalIncome" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: #10b981;">$0.00</h2>
       <span id="finIncomeCount" style="font-size: 0.78rem; color: var(--text-muted);">0 entradas registradas</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Egresos / Gastos</span>
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Gastos Operativos (Fijos + Var)</span>
       <h2 id="finTotalExpense" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--danger-color);">$0.00</h2>
-      <span id="finRecurringSum" style="font-size: 0.78rem; color: var(--text-muted);">Costos fijos: $0.00</span>
+      <span id="finRecurringSum" style="font-size: 0.78rem; color: var(--text-muted);">Fijos: $0 | Variables: $0</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Tasa de Ahorro</span>
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ahorro & Fondo de Reserva</span>
       <h2 id="finSavingsRate" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--info-color);">0%</h2>
-      <span id="finSavingsHint" style="font-size: 0.78rem; color: var(--text-muted);">Meta recomendada: ≥ 20%</span>
+      <span id="finSavingsHint" style="font-size: 0.78rem; color: var(--text-muted);">Reserva acumulada: $0</span>
     </div>
 
   </div>
 
-  <!-- Fila 2: Termómetro de Presupuesto Mensual -->
+  <!-- Fila 2: Termómetro de Presupuesto Mensual (Evalúa Gastos Operativos vs Tope) -->
   <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.8rem; box-shadow: var(--shadow-base);">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.8rem;">
       <div>
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Límite de Presupuesto Mensual de Gastos</h3>
-        <p id="finBudgetAlertText" style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">Define tu tope mensual para recibir alertas tempranas de sobregiro.</p>
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Ejecución Presupuestal del Periodo</h3>
+        <p id="finBudgetAlertText" style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">El ahorro y fondo de emergencia no penalizan tu límite de gastos operativos.</p>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <input type="number" id="finBudgetLimitInput" class="form-input" placeholder="Tope mensual ($)" min="0" step="10000" style="width: 170px; padding: 0.5rem 0.8rem; font-size: 0.85rem;">
@@ -100,29 +102,31 @@
     </div>
   </div>
 
-  <!-- Fila 3: Contenedor Principal (Registro + Analítica y Libro Mayor) -->
-  <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+  <!-- Fila 3: Contenedor Principal -->
+  <div class="settings-container" style="grid-template-columns: 360px 1fr;">
     
-    <!-- COLUMNA IZQUIERDA: FORMULARIO DE MOVIMIENTO Y PLANTILLAS DE PAGOS FIJOS -->
+    <!-- COLUMNA IZQUIERDA: FORMULARIO CONTABLE DE 3 VÍAS -->
     <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
       
-      <!-- Formulario de Registro -->
       <form id="financeTxForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Movimiento</h3>
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Asiento Contable</h3>
 
-        <!-- Selector Tipo: Gasto / Ingreso -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem;">
-          <button type="button" class="btn-outline tx-type-btn active" data-type="gasto" style="justify-content: center; padding: 0.65rem; border-color: var(--danger-color); color: var(--danger-color); font-weight: 700;">
-            ↓ Egreso / Gasto
+        <!-- Selector de 3 Naturalezas Contables: Gasto / Ingreso / Reserva (Punto Medio) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 1rem;">
+          <button type="button" class="btn-outline tx-type-btn active" data-type="gasto" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; border-color: var(--danger-color); color: var(--danger-color); font-weight: 700;">
+            ↓ Gasto
           </button>
-          <button type="button" class="btn-outline tx-type-btn" data-type="ingreso" style="justify-content: center; padding: 0.65rem; font-weight: 700;">
+          <button type="button" class="btn-outline tx-type-btn" data-type="ingreso" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; font-weight: 700;">
             ↑ Ingreso
+          </button>
+          <button type="button" class="btn-outline tx-type-btn" data-type="reserva" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; font-weight: 700;" title="Descuenta del disponible pero suma a tu Fondo/Ahorro sin inflar los gastos">
+            🏦 Reserva
           </button>
         </div>
 
         <div style="margin-bottom: 0.8rem;">
-          <label for="txTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto o Entidad</label>
-          <input type="text" id="txTitleInput" class="form-input" placeholder="Ej. Recibo de Luz, Nómina, Mercado..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+          <label for="txTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto o Rubro</label>
+          <input type="text" id="txTitleInput" class="form-input" placeholder="Ej. Arriendo, Mercado, Fondo Emergencia..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
         </div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
@@ -137,27 +141,30 @@
         </div>
 
         <div style="margin-bottom: 0.9rem;">
-          <label for="txCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría Presupuestal</label>
-          <select id="txCategorySelect" class="form-input" style="padding: 0.65rem; font-size: 0.86rem; cursor: pointer;">
-            <option value="Servicios">⚡ Servicios Fijos (Luz, Agua, Red)</option>
-            <option value="Hogar">🏠 Vivienda / Arriendo / Mantenimiento</option>
-            <option value="Alimentación">🛒 Alimentación y Despensa</option>
+          <label for="txCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Clasificación Contable</label>
+          <select id="txCategorySelect" class="form-input" style="padding: 0.65rem; font-size: 0.85rem; cursor: pointer;">
+            <option value="Hogar">🏠 Vivienda / Arriendo</option>
+            <option value="Servicios">⚡ Recibos / Servicios Fijos</option>
+            <option value="Alimentación">🛒 Comida / Mercado</option>
+            <option value="Aseo">🧼 Aseo y Limpieza</option>
+            <option value="Ahorro">🏦 Fondo de Emergencia / Reserva</option>
+            <option value="Aporte Hogar">🤝 Traslado / Aporte al Fondo Común</option>
+            <option value="Salario">💼 Salario / Ingreso Corriente</option>
             <option value="Transporte">🚗 Transporte y Movilidad</option>
             <option value="Salud">💊 Salud y Bienestar</option>
             <option value="Deudas">💳 Créditos y Obligaciones</option>
-            <option value="Ahorro">🏦 Ahorro e Inversión</option>
-            <option value="Salario">💼 Salario / Ingreso Principal</option>
-            <option value="Otros">📦 Otros Movimientos</option>
+            <option value="Otros">📦 Gastos Variables / Otros</option>
           </select>
         </div>
 
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 1.1rem;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 0.8rem;">
           <input type="checkbox" id="txRecurringCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
-          Es un pago o ingreso fijo mensual
+          Es una obligación o cuota fija mensual (Contabilidad Fija)
         </label>
+
         <label id="txShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 1.1rem;">
           <input type="checkbox" id="txShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
-          🏠 Incluir en el Flujo Mensual del Hogar
+          🏠 Incluir en la Contabilidad del Hogar
         </label>
 
         <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">
@@ -165,29 +172,29 @@
         </button>
       </form>
 
-      <!-- Plantillas Rápidas de Servicios Domésticos (1 Clic) -->
+      <!-- Plantillas Rápidas de Economía del Hogar (1 Clic) -->
       <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
-        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem;">⚡ Autocompletar Pago Fijo</h4>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem;">Haz clic para cargar los datos en el formulario:</p>
+        <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem;">⚡ Asientos Rápidos del Hogar</h4>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem;">Autocompleta con la clasificación contable correcta:</p>
         <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Servicio de Energía Eléctrica" data-cat="Servicios">💡 Energía</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Acueducto y Alcantarillado" data-cat="Servicios">💧 Agua</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Internet Fibra Óptica" data-cat="Servicios">🌐 Internet</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Gas Natural Domiciliario" data-cat="Servicios">🔥 Gas</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Arriendo / Administración" data-cat="Hogar">🏢 Vivienda</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Pago de Arriendo" data-cat="Hogar" data-mode="gasto" data-rec="true">🏠 Arriendo</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Recibos / Servicios (Agua, Luz, Gas, Net)" data-cat="Servicios" data-mode="gasto" data-rec="true">⚡ Recibos</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Comida / Mercado" data-cat="Alimentación" data-mode="gasto" data-rec="false">🛒 Comida</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Productos de Aseo y Limpieza" data-cat="Aseo" data-mode="gasto" data-rec="false">🧼 Aseo</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Fondo de Emergencia Mensual" data-cat="Ahorro" data-mode="reserva" data-rec="true">🏦 Fondo Emergencia</button>
         </div>
       </div>
 
     </div>
 
-    <!-- COLUMNA DERECHA: DISTRIBUCIÓN POR CATEGORÍAS Y LIBRO MAYOR -->
+    <!-- COLUMNA DERECHA: ESTADO DE RESULTADOS Y LIBRO MAYOR -->
     <div class="settings-content" style="padding: 2.2rem; display: flex; flex-direction: column; gap: 2rem;">
       
-      <!-- Bloque Superior: Distribución Analítica de Gastos por Categoría -->
+      <!-- Bloque Superior: Estructura Contable (Gastos Fijos, Variables y Reserva) -->
       <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.5rem;">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Distribución de Gastos por Categoría</h3>
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Estructura de Egresos y Reservas por Categoría</h3>
         <div id="finCategoryBars" style="display: flex; flex-direction: column; gap: 0.75rem;">
-          <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra gastos para visualizar la estructura porcentual de tus egresos.</p>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra movimientos para visualizar la estructura porcentual.</p>
         </div>
       </div>
 
@@ -197,8 +204,9 @@
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             <button type="button" class="btn-outline fin-list-filter active" data-filter="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
             <button type="button" class="btn-outline fin-list-filter" data-filter="ingreso">↑ Ingresos</button>
-            <button type="button" class="btn-outline fin-list-filter" data-filter="gasto">↓ Gastos</button>
-            <button type="button" class="btn-outline fin-list-filter" data-filter="recurring">🔄 Fijos Mensuales</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="gasto">↓ Gastos Operativos</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="reserva">🏦 Reservas / Ahorro</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="recurring">🔄 Fijos</button>
           </div>
 
           <input type="search" id="finSearchInput" class="form-input" placeholder="Buscar concepto o categoría..." style="max-width: 240px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">

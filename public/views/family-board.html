@@ -244,12 +244,15 @@
           <form id="familyFinanceForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
             <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Flujo del Hogar</h3>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem;">
-              <button type="button" class="btn-outline fam-tx-type active" data-type="gasto" style="justify-content: center; padding: 0.6rem; border-color: var(--danger-color, #ef4444); color: var(--danger-color, #ef4444); font-weight: 700;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 1rem;">
+              <button type="button" class="btn-outline fam-tx-type active" data-type="gasto" style="justify-content: center; padding: 0.55rem 0.3rem; font-size: 0.76rem; border-color: var(--danger-color, #ef4444); color: var(--danger-color, #ef4444); font-weight: 700;">
                 ↓ Gasto Hogar
               </button>
-              <button type="button" class="btn-outline fam-tx-type" data-type="ingreso" style="justify-content: center; padding: 0.6rem; font-weight: 700;">
-                ↑ Aporte al Fondo
+              <button type="button" class="btn-outline fam-tx-type" data-type="ingreso" style="justify-content: center; padding: 0.55rem 0.3rem; font-size: 0.76rem; font-weight: 700;">
+                ↑ Aporte Fondo
+              </button>
+              <button type="button" class="btn-outline fam-tx-type" data-type="reserva" style="justify-content: center; padding: 0.55rem 0.3rem; font-size: 0.76rem; font-weight: 700;" title="Aparta el Fondo de Emergencia descontándolo de la caja sin inflar el Gasto Familiar">
+                🏦 Fondo Reserva
               </button>
             </div>
 
@@ -266,10 +269,12 @@
               <div style="flex: 1;">
                 <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Categoría</label>
                 <select id="famTxCategory" class="form-input" style="padding: 0.65rem; font-size: 0.84rem; cursor: pointer;">
-                  <option value="Servicios">⚡ Servicios Fijos</option>
-                  <option value="Hogar">🏠 Arriendo / Hogar</option>
-                  <option value="Alimentación">🛒 Alimentación</option>
-                  <option value="Ahorro">🏦 Aporte / Fondo</option>
+                  <option value="Hogar">🏠 Arriendo / Vivienda</option>
+                  <option value="Servicios">⚡ Recibos / Servicios Fijos</option>
+                  <option value="Alimentación">🛒 Comida / Mercado</option>
+                  <option value="Aseo">🧼 Aseo y Limpieza</option>
+                  <option value="Ahorro">🏦 Fondo de Emergencia (Reserva)</option>
+                  <option value="Aporte">🤝 Aporte al Fondo Común</option>
                   <option value="Otros">📦 Otros</option>
                 </select>
               </div>
