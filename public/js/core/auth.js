@@ -1,28 +1,9 @@
 // public/js/core/auth.js
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from './router.js';
-import { applyThemeColor, injectSuperButton, removeSuperButton } from './theme.js';
+import { syncThemeFromUserMetadata, removeSuperButton } from './theme.js';
 import { showToast } from '../ui/toast.js';
 import { openLoginModal } from '../ui/modal.js';
-
-function syncUserThemeFromMetadata(user) {
-    if (!user || !user.user_metadata) return;
-    const { theme_color, super_theme } = user.user_metadata;
-
-    if (theme_color) {
-        applyThemeColor(theme_color);
-    }
-
-    if (typeof super_theme === 'boolean') {
-        localStorage.setItem('ngn_super_theme', String(super_theme));
-    }
-
-    if (localStorage.getItem('ngn_super_theme') === 'true') {
-        injectSuperButton();
-    } else {
-        removeSuperButton();
-    }
-}
 
 export async function checkActiveSession() {
     const { data: { session } } = await supabase.auth.getSession();
@@ -33,7 +14,7 @@ export async function checkActiveSession() {
             btnLogin.textContent = 'Mi Panel';
             btnLogin.onclick = () => navigateTo('/views/dashboard.html');
         }
-        syncUserThemeFromMetadata(session.user);
+        syncThemeFromUserMetadata(session.user);
     } else {
         removeSuperButton();
         if (btnLogin) {
@@ -52,7 +33,7 @@ export function initAuthListener() {
                 btnLogin.textContent = 'Mi Panel';
                 btnLogin.onclick = () => navigateTo('/views/dashboard.html');
             }
-            syncUserThemeFromMetadata(session.user);
+            syncThemeFromUserMetadata(session.user);
         } else if (event === 'SIGNED_OUT') {
             removeSuperButton();
             if (btnLogin) {

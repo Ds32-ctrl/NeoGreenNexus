@@ -33,7 +33,7 @@
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
-        Seguridad
+        Seguridad & Respaldo
       </button>
     </aside>
 
@@ -49,9 +49,7 @@
           <img id="previewAvatar" src="https://api.dicebear.com/7.x/bottts-neutral/svg?seed=N1&backgroundColor=e2e8f0" alt="Vista previa del avatar" class="live-avatar-preview">
           <div class="avatar-grid-wrapper">
             <label class="avatar-catalog-label">Catálogo de Representación (Bots & Formas):</label>
-            <div class="avatar-grid" id="avatarSelectorGrid">
-              <!-- settings.controller.js inyecta dinámicamente el catálogo aquí -->
-            </div>
+            <div class="avatar-grid" id="avatarSelectorGrid"></div>
             <button type="button" class="btn-outline" id="btnExpandCatalog">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6 9 12 15 18 9"></polyline>
@@ -93,55 +91,142 @@
         </button>
       </section>
 
-      <!-- PESTAÑA 2: MOTOR CREATIVO -->
+      <!-- PESTAÑA 2: MOTOR CREATIVO V3 (ESTILO WINDOWS 11 / GOOGLE MATERIAL YOU) -->
       <section id="apariencia" class="tab-pane">
-        <h2 class="pane-title">Motor Cromático Personalizado</h2>
-        <p class="pane-subtitle">Reescribe el código de color de tu ecosistema en tiempo real y sincronízalo en tus dispositivos.</p>
+        <h2 class="pane-title">Personalización y Motor Creativo</h2>
+        <p class="pane-subtitle">Combina temas completos, texturas de fondo, transparencia Mica y personaliza los atajos de tu botón flotante en todos tus dispositivos.</p>
 
-        <div class="theme-grid" id="themeEngineGrid">
-          <div class="theme-card active" data-color="#10b981">
-            <div class="theme-color-preview" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
-            <h4>Neo Esmeralda</h4>
-            <p>Por defecto</p>
+        <!-- Vista Previa Interactiva en Vivo -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; margin-bottom: 1.8rem; align-items: stretch;">
+          <div id="liveThemePreviewBox" class="win-preview-shell">
+            <div id="livePreviewWindow" class="win-preview-window">
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <div style="display: flex; gap: 5px; margin-bottom: 4px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #ef4444;"></span>
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b;"></span>
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                </div>
+                <div style="height: 7px; width: 72%; border-radius: 4px; background: currentColor; opacity: 0.25;"></div>
+                <div style="height: 6px; width: 90%; border-radius: 4px; background: currentColor; opacity: 0.14;"></div>
+                <div style="height: 6px; width: 58%; border-radius: 4px; background: currentColor; opacity: 0.14;"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span id="livePreviewCaption" style="font-size: 0.7rem; font-weight: 700; opacity: 0.8;">Material Mesh</span>
+                <span id="livePreviewPill" style="width: 34px; height: 11px; border-radius: 6px; background: var(--primary-neon);"></span>
+              </div>
+            </div>
           </div>
-          <div class="theme-card" data-color="#a855f7">
-            <div class="theme-color-preview" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"></div>
-            <h4>Púrpura Minimalista</h4>
-            <p>Diseño de Software</p>
+
+          <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 0.7rem;">
+            <div class="setting-row" style="margin: 0; padding: 0.85rem 1rem;">
+              <div class="setting-info">
+                <h4 style="font-size: 0.9rem; margin: 0;">Modo Noche (Oscuro)</h4>
+                <p style="font-size: 0.76rem; margin: 2px 0 0 0;">Sincronizado en Web, APK y Desktop</p>
+              </div>
+              <label class="toggle-switch" aria-label="Activar Modo Noche">
+                <input type="checkbox" id="toggleDarkModeSettings">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
+            <div class="setting-row" style="margin: 0; padding: 0.85rem 1rem;">
+              <div class="setting-info">
+                <h4 style="font-size: 0.9rem; margin: 0;">Efecto Cristal / Mica</h4>
+                <p style="font-size: 0.76rem; margin: 2px 0 0 0;">Translucidez difuminada estilo Windows 11</p>
+              </div>
+              <label class="toggle-switch" aria-label="Activar Efecto Cristal Mica">
+                <input type="checkbox" id="toggleGlassMica">
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
           </div>
-          <div class="theme-card" data-color="#0ea5e9">
-            <div class="theme-color-preview" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);"></div>
-            <h4>Océano Profundo</h4>
-            <p>Enfoque analítico</p>
+        </div>
+
+        <!-- Galería de Temas Preestablecidos -->
+        <div style="margin-bottom: 1.8rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--text-main);">✨ Temas de Atmósfera (1 Clic)</h3>
+          <div id="themePresetsGrid" class="preset-thumb-grid">
+            <!-- Inyectado dinámicamente por settings.controller.js -->
           </div>
-          <div class="theme-card" data-color="#f59e0b">
-            <div class="theme-color-preview" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
-            <h4>Ámbar Cálido</h4>
-            <p>Anti-fatiga visual</p>
+        </div>
+
+        <!-- Patrones y Texturas de Fondo -->
+        <div style="margin-bottom: 1.8rem;">
+          <h3 style="font-size: 0.95rem; font-weight: 800; margin-bottom: 0.75rem; color: var(--text-main);">🖼️ Patrones y Texturas de Fondo</h3>
+          <div id="bgPatternsGrid" class="pattern-chip-grid">
+            <!-- Inyectado dinámicamente por settings.controller.js -->
           </div>
-          <div class="theme-card" data-color="#f43f5e">
-            <div class="theme-color-preview" style="background: linear-gradient(135deg, #f43f5e, #e11d48);"></div>
-            <h4>Carmesí Fuerte</h4>
-            <p>Alta energía</p>
+        </div>
+
+        <!-- Color de Énfasis + Color Libre -->
+        <div style="margin-bottom: 1.8rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+            <h3 style="font-size: 0.95rem; font-weight: 800; margin: 0; color: var(--text-main);">🎨 Color de Énfasis</h3>
+            <label style="display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); cursor: pointer;">
+              Color libre:
+              <input type="color" id="customAccentColorPicker" value="#10b981" style="width: 34px; height: 28px; border: 1px solid var(--border-card); border-radius: 8px; background: transparent; cursor: pointer;">
+            </label>
+          </div>
+          <div class="theme-grid" id="themeEngineGrid">
+            <div class="theme-card active" data-color="#10b981">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+              <h4>Neo Esmeralda</h4>
+              <p>Clásico NGN</p>
+            </div>
+            <div class="theme-card" data-color="#a855f7">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #a855f7, #7e22ce);"></div>
+              <h4>Púrpura</h4>
+              <p>Software & Eclipse</p>
+            </div>
+            <div class="theme-card" data-color="#0ea5e9">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);"></div>
+              <h4>Océano Bloom</h4>
+              <p>Enfoque analítico</p>
+            </div>
+            <div class="theme-card" data-color="#f59e0b">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+              <h4>Ámbar Cálido</h4>
+              <p>Anti-fatiga visual</p>
+            </div>
+            <div class="theme-card" data-color="#f43f5e">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #f43f5e, #e11d48);"></div>
+              <h4>Carmesí</h4>
+              <p>Alta energía</p>
+            </div>
+            <div class="theme-card" data-color="#00ff66">
+              <div class="theme-color-preview" style="background: linear-gradient(135deg, #00ff66, #16a34a);"></div>
+              <h4>Cyber Neón</h4>
+              <p>Estética Matrix</p>
+            </div>
           </div>
         </div>
         
-        <div class="setting-row setting-row-highlight">
-          <div class="setting-info">
-            <h4 class="text-neon">Super Botón de Temas</h4>
-            <p>Transforma el botón inferior derecho en un menú desplegable de acceso rápido a todos los temas (activo en sesión).</p>
+        <!-- Super Botón Multifunción con Flecha ▲ -->
+        <div class="setting-row setting-row-highlight" style="flex-direction: column; align-items: stretch; gap: 0.9rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div class="setting-info">
+              <h4 class="text-neon">Super Botón Multifunción (con Flecha ▲)</h4>
+              <p>Muestra el botón flotante con una flecha superior para intercambiar su función al vuelo entre Paleta, Modo Noche, Buscador, Agenda o Finanzas.</p>
+            </div>
+            <label class="toggle-switch" aria-label="Activar Super Botón Multifunción">
+              <input type="checkbox" id="toggleSuperTheme">
+              <span class="toggle-slider"></span>
+            </label>
           </div>
-          <label class="toggle-switch" aria-label="Activar Super Botón de Temas">
-            <input type="checkbox" id="toggleSuperTheme">
-            <span class="toggle-slider"></span>
-          </label>
+
+          <div id="fabDefaultShortcutBox" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding-top: 0.75rem; border-top: 1px dashed var(--border-card);">
+            <label for="selectFabDefaultMode" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted);">Atajo principal asignado al botón:</label>
+            <select id="selectFabDefaultMode" class="form-input" style="width: auto; min-width: 220px; padding: 0.5rem 0.8rem; font-size: 0.84rem; cursor: pointer;">
+              <!-- Inyectado dinámicamente -->
+            </select>
+          </div>
         </div>
       </section>
 
-      <!-- PESTAÑA 3: SEGURIDAD -->
+      <!-- PESTAÑA 3: SEGURIDAD, RESPALDO Y TELEMETRÍA MULTIPLATAFORMA -->
       <section id="seguridad" class="tab-pane">
-        <h2 class="pane-title">Malla de Seguridad</h2>
-        <p class="pane-subtitle">Gestiona las llaves criptográficas de tu acceso y restablece tus credenciales.</p>
+        <h2 class="pane-title">Malla de Seguridad & Respaldo</h2>
+        <p class="pane-subtitle">Gestiona tus credenciales, descarga un respaldo completo de tu ecosistema y audita tu dispositivo actual.</p>
         
         <div class="setting-row">
           <div class="setting-info">
@@ -155,6 +240,23 @@
             </svg>
             Solicitar Cambio de Contraseña
           </button>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-info">
+            <h4>Respaldo Integral del Ecosistema (JSON)</h4>
+            <p>Exporta en 1 clic tus finanzas, deudas, agenda, despensa, zonas y hábitos para resguardo local o migración.</p>
+          </div>
+          <button type="button" id="btnExportFullBackup" class="btn-save" style="margin: 0; padding: 0.65rem 1.1rem; font-size: 0.84rem;">
+            📦 Descargar Respaldo JSON
+          </button>
+        </div>
+
+        <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 16px; padding: 1.2rem; margin-top: 1.2rem;">
+          <h4 style="font-size: 0.86rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin: 0 0 0.7rem 0;">🖥️ Diagnóstico Multiplataforma del Nodo</h4>
+          <div id="deviceTelemetryGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; font-size: 0.82rem;">
+            <!-- Inyectado dinámicamente -->
+          </div>
         </div>
       </section>
 
