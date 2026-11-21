@@ -3,6 +3,23 @@ import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
 import { getActiveHousehold, createHousehold, joinHouseholdByCode } from '../core/household.js';
+import {
+    escapeHTML,
+    formatCOP,
+    getTransactionNature,
+    summarizeTransactions,
+    getMonthlyCommitmentImpact,
+    loadCommitments,
+    payNextCommitmentInstallment
+} from '../services/finance.service.js';
+import {
+    loadAgendaItems,
+    sortAgendaItems,
+    completeAgendaItem,
+    describeCommitmentSchedule,
+    diffDaysFromToday,
+    getTodayISO
+} from '../services/agenda.service.js';
 
 const CATEGORY_LABELS = {
     nota:   { icon: '📌', label: 'Nota Visual' },
@@ -25,6 +42,8 @@ let activeHousehold = null;
 let allPosts = [];
 let familyTransactions = [];
 let importantDataList = [];
+let familyAgendaItems = [];
+let familyCommitments = [];
 
 let activeCategory = 'all';
 let searchQuery = '';
@@ -32,19 +51,6 @@ let selectedColor = '#10b981';
 let selectedTxType = 'gasto';
 let selectedMonth = 'all';
 let familyRealtimeChannel = null;
-
-function escapeHTML(str = '') {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-function formatCOP(val) {
-    return '$' + Number(val || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-}
 
 export async function initFamilyBoard() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -60,7 +66,6 @@ export async function initFamilyBoard() {
     activeCategory = 'all';
     searchQuery = '';
 
-    // Mes actual por defecto en el filtro
     const currentMonthStr = String(new Date().getMonth() + 1).padStart(2, '0');
     const monthSelect = document.getElementById('familyMonthFilter');
     if (monthSelect) {
@@ -132,7 +137,7 @@ async function loadAllFamilyData() {
     if (!activeHousehold) return;
 
     try {
-        const [postsRes, txRes, dataRes, invRes] = await Promise.all([
+        const [postsRes, txRes, dataRes, invRes, agendaList, commList] = await Promise.all([
             supabase
                 .from('family_board_posts')
                 .select('*')
@@ -153,7 +158,17 @@ async function loadAllFamilyData() {
             supabase
                 .from('inventory_items')
                 .select('id, in_shopping_list')
-                .eq('household_id', activeHousehold.id)
+                .eq('household_id', activeHousehold.id),
+            loadAgendaItems({
+                userId: currentUser.id,
+                householdId: activeHousehold.id,
+                scope: 'household'
+            }).catch(() => []),
+            loadCommitments({
+                userId: currentUser.id,
+                householdId: activeHousehold.id,
+                scope: 'household'
+            }).catch(() => [])
         ]);
 
         if (txRes.error) console.error('Error cargando transacciones del hogar:', txRes.error);
@@ -161,11 +176,14 @@ async function loadAllFamilyData() {
         allPosts = postsRes.data || [];
         familyTransactions = txRes.data || [];
         importantDataList = dataRes.data || [];
+        familyAgendaItems = agendaList || [];
+        familyCommitments = commList || [];
         const sharedShoppingCount = (invRes.data || []).filter(i => i.in_shopping_list).length;
 
         updateEcosystemKPIs(sharedShoppingCount);
         updateUpcomingAgenda();
         renderBoardGrid();
+        renderFamilyCommitments();
         renderFamilyFinanceFlow();
         renderImportantDataGrid();
     } catch (err) {
@@ -181,34 +199,9 @@ function getFilteredTransactions() {
     });
 }
 
-function isFamilyReserveTx(tx) {
-    if (tx.type === 'ingreso') return false;
-    const cat = (tx.category || '').trim();
-    const title = (tx.title || '').toLowerCase();
-    return ['Ahorro', 'Fondo de Emergencia', 'Reserva'].includes(cat) || title.includes('fondo de emergencia');
-}
-
 function updateEcosystemKPIs(sharedShoppingCount = 0) {
     const filteredTx = getFilteredTransactions();
-    let totalIncome = 0;
-    let operationalExpense = 0;
-    let emergencyReserve = 0;
-
-    filteredTx.forEach(t => {
-        const amt = Number(t.amount || 0);
-        if (t.type === 'ingreso') {
-            totalIncome += amt;
-        } else if (isFamilyReserveTx(t)) {
-            emergencyReserve += amt;
-        } else {
-            operationalExpense += amt;
-        }
-    });
-
-    // Liquidez disponible en caja (después de gastos y después de separar el Fondo de Emergencia)
-    const availableCash = totalIncome - operationalExpense - emergencyReserve;
-    // Utilidad Neta (Excedente real del hogar = Reserva apartada + caja disponible)
-    const netSurplus = totalIncome - operationalExpense;
+    const s = summarizeTransactions(filteredTx);
 
     const balanceEl = document.getElementById('famKpiBalance');
     const flowSubEl = document.getElementById('famKpiFlowSub');
@@ -219,58 +212,155 @@ function updateEcosystemKPIs(sharedShoppingCount = 0) {
     const vaultEl = document.getElementById('famKpiVaultCount');
     const syncSubEl = document.getElementById('famKpiSharedSync');
 
+    const wealthTotal = s.reservedSavings + s.investmentContributions;
+
     if (balanceEl) {
-        balanceEl.textContent = formatCOP(availableCash);
-        balanceEl.style.color = availableCash >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
+        balanceEl.textContent = formatCOP(s.availableCash);
+        balanceEl.style.color = s.availableCash >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
     }
     if (flowSubEl) {
-        flowSubEl.textContent = `Aportes: ${formatCOP(totalIncome)} | Fondo Emergencia: ${formatCOP(emergencyReserve > 0 ? emergencyReserve : Math.max(0, netSurplus))}`;
+        flowSubEl.textContent = `Aportes: ${formatCOP(s.totalIncome)} | Reserva/Inv: ${formatCOP(wealthTotal)}`;
     }
-    if (expEl) expEl.textContent = formatCOP(operationalExpense);
+    if (expEl) expEl.textContent = formatCOP(s.totalOutflows);
 
     if (budgetSubEl) {
         const limit = Number(activeHousehold?.monthly_budget || 0);
         if (limit > 0) {
-            const pct = Math.min(100, Number(((operationalExpense / limit) * 100).toFixed(2)));
-            const resPct = Number(((emergencyReserve / limit) * 100).toFixed(2));
-            budgetSubEl.textContent = `Operativo: ${pct}% | Reserva: ${resPct}% (Tope: ${formatCOP(limit)})`;
+            const pct = Math.min(100, Number(((s.totalOutflows / limit) * 100).toFixed(2)));
+            const resPct = Number(((wealthTotal / limit) * 100).toFixed(2));
+            budgetSubEl.textContent = `Egresos: ${pct}% | Reserva: ${resPct}% (Tope: ${formatCOP(limit)})`;
         } else {
             budgetSubEl.textContent = 'Presupuesto hogar: Sin tope fijo';
         }
     }
 
-    if (postsEl) postsEl.textContent = allPosts.length;
-    if (pinnedSubEl) pinnedSubEl.textContent = `${allPosts.filter(p => p.pinned).length} avisos fijados`;
+    const pendingAgendaCount = familyAgendaItems.filter(a => a.status !== 'completado').length;
+    if (postsEl) postsEl.textContent = allPosts.length + pendingAgendaCount;
+    if (pinnedSubEl) pinnedSubEl.textContent = `${allPosts.filter(p => p.pinned).length} fijados • ${pendingAgendaCount} en agenda`;
     if (vaultEl) vaultEl.textContent = importantDataList.length;
     if (syncSubEl) syncSubEl.textContent = `${importantDataList.length} datos fijos • ${sharedShoppingCount} en compras`;
 }
 
+// WIDGET AGENDA FAMILIAR CONECTADO A agenda_items + EVENTOS DEL MURAL
 function updateUpcomingAgenda() {
     const upcomingList = document.getElementById('upcomingEventsList');
     if (!upcomingList) return;
 
-    const events = allPosts
+    const pendingAgenda = sortAgendaItems(
+        familyAgendaItems.filter(i => i.status !== 'completado'),
+        'time'
+    ).slice(0, 6);
+
+    const postEvents = allPosts
         .filter(p => p.event_date)
         .sort((a, b) => new Date(a.event_date) - new Date(b.event_date))
-        .slice(0, 5);
+        .slice(0, 3);
 
-    if (events.length === 0) {
-        upcomingList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sin eventos programados.</p>`;
+    upcomingList.innerHTML = '';
+
+    if (pendingAgenda.length === 0 && postEvents.length === 0) {
+        upcomingList.innerHTML = `<p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sin eventos ni cuotas programadas.</p>`;
         return;
     }
 
-    upcomingList.innerHTML = events.map(ev => {
-        const dateStr = new Date(ev.event_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
-        return `
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: var(--bg-color); border-radius: 10px; border-left: 3px solid ${escapeHTML(ev.color_tag || '#10b981')};">
-                <div style="overflow: hidden;">
-                    <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(ev.title)}</div>
-                    <div style="font-size: 0.72rem; color: var(--text-muted);">Por: ${escapeHTML(ev.author_name || 'Miembro')}</div>
+    pendingAgenda.forEach(item => {
+        const days = diffDaysFromToday(item.due_date);
+        const dateTag = days < 0 ? `Vencido` : days === 0 ? 'Hoy' : item.due_date;
+        const isFinancial = ['cuota_deuda', 'aporte_inversion', 'pago_fijo'].includes(item.item_type);
+
+        const row = document.createElement('div');
+        row.style.cssText = `display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 8px 10px; background: var(--bg-color); border-radius: 10px; border-left: 3px solid ${escapeHTML(item.color_tag || '#a855f7')};`;
+        row.innerHTML = `
+            <div style="overflow: hidden; flex: 1;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(item.title)}</div>
+                <div style="font-size: 0.72rem; color: ${days < 0 ? '#ef4444' : 'var(--text-muted)'};">
+                    ${escapeHTML(dateTag)}${Number(item.amount || 0) > 0 ? ` • <strong>${formatCOP(item.amount)}</strong>` : ''}
                 </div>
-                <span style="font-size: 0.74rem; color: var(--primary-neon); font-weight: 700;">${escapeHTML(dateStr)}</span>
             </div>
+            <button type="button" class="btn-outline btn-fam-ag-done" style="padding: 3px 7px; font-size: 0.72rem; border-color: var(--primary-neon); color: var(--primary-neon); white-space: nowrap;">
+                ${isFinancial && Number(item.amount || 0) > 0 ? 'Pagar ✓' : '✓'}
+            </button>
         `;
-    }).join('');
+        row.querySelector('.btn-fam-ag-done').addEventListener('click', async (e) => {
+            e.currentTarget.disabled = true;
+            try {
+                await completeAgendaItem(item, { userId: currentUser.id, authorName: currentAuthorName, registerFinance: true });
+                showToast(isFinancial ? 'Cuota liquidada y asentada en el Flujo Familiar.' : 'Evento completado.', 'success');
+                await loadAllFamilyData();
+            } catch (err) {
+                showToast('Error al completar: ' + err.message, 'error');
+                e.currentTarget.disabled = false;
+            }
+        });
+        upcomingList.appendChild(row);
+    });
+
+    postEvents.forEach(ev => {
+        const dateStr = new Date(ev.event_date).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+        const row = document.createElement('div');
+        row.style.cssText = `display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; background: var(--bg-color); border-radius: 10px; border-left: 3px solid ${escapeHTML(ev.color_tag || '#10b981')};`;
+        row.innerHTML = `
+            <div style="overflow: hidden;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📌 ${escapeHTML(ev.title)}</div>
+                <div style="font-size: 0.72rem; color: var(--text-muted);">Mural • Por: ${escapeHTML(ev.author_name || 'Miembro')}</div>
+            </div>
+            <span style="font-size: 0.74rem; color: var(--primary-neon); font-weight: 700;">${escapeHTML(dateStr)}</span>
+        `;
+        upcomingList.appendChild(row);
+    });
+}
+
+function renderFamilyCommitments() {
+    const container = document.getElementById('famCommitmentsList');
+    if (!container) return;
+
+    container.innerHTML = '';
+    const active = familyCommitments.filter(c => c.status === 'activo');
+
+    if (active.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 0.84rem; margin: 0;">Sin cuotas compartidas activas. Configúralas en <strong>Flujo Financiero → Hogar Familiar → Deuda / Inv.</strong></p>`;
+        return;
+    }
+
+    active.forEach(c => {
+        const isDebt = c.kind === 'deuda';
+        const accent = c.color_tag || (isDebt ? '#a855f7' : '#14b8a6');
+        const sched = describeCommitmentSchedule(c);
+        const monthlyEq = getMonthlyCommitmentImpact(c);
+        const progress = c.total_installments ? `${c.paid_installments}/${c.total_installments} cuotas` : `${c.paid_installments} aportes`;
+
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+        row.style.cssText = `margin-bottom: 0; padding: 0.8rem 1rem; border-left: 4px solid ${accent};`;
+        row.innerHTML = `
+            <div class="setting-info">
+                <h4 style="font-size: 0.92rem; color: var(--text-main); margin-bottom: 2px;">
+                    ${isDebt ? '💳' : '📈'} ${escapeHTML(c.title)}
+                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: ${accent}; margin-left: 6px;">${escapeHTML(sched)}</span>
+                </h4>
+                <p style="font-size: 0.76rem; color: var(--text-muted); margin: 0;">
+                    Cuota: <strong>${formatCOP(c.monthly_amount)}</strong> (${formatCOP(monthlyEq)}/mes) • Avance: ${escapeHTML(progress)}
+                </p>
+            </div>
+            <button type="button" class="btn-outline btn-fam-pay-comm" style="padding: 0.4rem 0.8rem; font-size: 0.76rem; font-weight: 700; border-color: var(--primary-neon); color: var(--primary-neon);">
+                ${isDebt ? 'Pagar Cuota ✓' : 'Aportar ✓'}
+            </button>
+        `;
+
+        row.querySelector('.btn-fam-pay-comm').addEventListener('click', async (e) => {
+            e.currentTarget.disabled = true;
+            try {
+                await payNextCommitmentInstallment(c, { userId: currentUser.id, authorName: currentAuthorName });
+                showToast('Cuota familiar registrada en el Libro Mayor y marcada en Agenda.', 'success');
+                await loadAllFamilyData();
+            } catch (err) {
+                showToast('Error al registrar cuota: ' + err.message, 'error');
+                e.currentTarget.disabled = false;
+            }
+        });
+
+        container.appendChild(row);
+    });
 }
 
 function renderBoardGrid() {
@@ -379,20 +469,20 @@ function renderFamilyFinanceFlow() {
 
     const filtered = getFilteredTransactions();
 
-    // 1. Libro Auxiliar de Participación por Miembro (Aportes, Pagos Operativos y Reserva Fondo)
     const memberTotals = {};
     let totalContributed = 0;
 
     filtered.forEach(tx => {
         const author = tx.author_name || 'Miembro';
         const amt = Number(tx.amount || 0);
+        const nat = getTransactionNature(tx);
         if (!memberTotals[author]) {
             memberTotals[author] = { aportes: 0, pagos: 0, reservas: 0 };
         }
-        if (tx.type === 'ingreso') {
+        if (nat === 'ingreso') {
             memberTotals[author].aportes += amt;
             totalContributed += amt;
-        } else if (isFamilyReserveTx(tx)) {
+        } else if (nat === 'reserva' || nat === 'inversion') {
             memberTotals[author].reservas += amt;
         } else {
             memberTotals[author].pagos += amt;
@@ -405,7 +495,6 @@ function renderFamilyFinanceFlow() {
     } else {
         contribContainer.innerHTML = authors.map(name => {
             const info = memberTotals[name];
-            const shareBase = info.aportes > 0 ? info.aportes : (info.pagos + info.reservas);
             const pct = totalContributed > 0
                 ? Math.round((info.aportes / totalContributed) * 100)
                 : 50;
@@ -415,8 +504,8 @@ function renderFamilyFinanceFlow() {
                         <span style="font-weight: 700; color: var(--text-main);">👤 ${escapeHTML(name)} (${pct}% del Fondo)</span>
                         <span style="color: var(--text-muted);">
                             Aportado: <strong style="color: #10b981;">${formatCOP(info.aportes)}</strong> |
-                            Gastos ejecutados: <strong style="color: var(--danger-color, #ef4444);">${formatCOP(info.pagos)}</strong> |
-                            Reserva: <strong style="color: #0ea5e9;">${formatCOP(info.reservas)}</strong>
+                            Egresos/Deudas: <strong style="color: var(--danger-color, #ef4444);">${formatCOP(info.pagos)}</strong> |
+                            Reserva/Inv: <strong style="color: #0ea5e9;">${formatCOP(info.reservas)}</strong>
                         </span>
                     </div>
                     <div style="width: 100%; height: 8px; background: var(--panel-bg); border-radius: 8px; overflow: hidden;">
@@ -427,7 +516,6 @@ function renderFamilyFinanceFlow() {
         }).join('');
     }
 
-    // 2. Renderizar Libro Mayor Familiar
     txListContainer.innerHTML = '';
     if (filtered.length === 0) {
         txListContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 1.5rem 0;">No hay movimientos familiares en este mes.</p>`;
@@ -435,35 +523,32 @@ function renderFamilyFinanceFlow() {
     }
 
     filtered.forEach(tx => {
-        const isIncome = tx.type === 'ingreso';
-        const isReserve = isFamilyReserveTx(tx);
-        const color = isIncome ? '#10b981' : isReserve ? '#0ea5e9' : 'var(--danger-color, #ef4444)';
-        const sign = isIncome ? '+' : isReserve ? '⇄ -' : '-';
+        const nat = getTransactionNature(tx);
+        const styleMap = {
+            ingreso:   { color: '#10b981', sign: '+',   badge: 'Aporte',             bg: 'rgba(16,185,129,0.12)' },
+            reserva:   { color: '#0ea5e9', sign: '⇄ -', badge: '🏦 Reserva / Fondo',  bg: 'rgba(14,165,233,0.15)' },
+            deuda:     { color: '#a855f7', sign: '-',   badge: '💳 Cuota Deuda',      bg: 'rgba(168,85,247,0.15)' },
+            inversion: { color: '#14b8a6', sign: '⇄ -', badge: '📈 Inversión',        bg: 'rgba(20,184,166,0.15)' },
+            operativo: { color: 'var(--danger-color, #ef4444)', sign: '-', badge: tx.is_recurring ? '🔄 Gasto Fijo' : '📊 Gasto Variable', bg: 'var(--panel-bg)' }
+        }[nat];
+
         const displayDate = tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '');
-
-        const badge = isIncome
-            ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: rgba(16,185,129,0.12); color: #10b981; margin-left: 6px;">Aporte</span>`
-            : isReserve
-                ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: rgba(14,165,233,0.15); color: #0ea5e9; margin-left: 6px;">🏦 Reserva / Fondo</span>`
-                : (tx.is_recurring
-                    ? `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--primary-neon); margin-left: 6px;">🔄 Gasto Fijo</span>`
-                    : `<span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: var(--panel-bg); color: var(--text-muted); margin-left: 6px;">📊 Gasto Variable</span>`);
-
         const row = document.createElement('div');
         row.className = 'setting-row';
-        row.style.cssText = `margin-bottom: 0; padding: 0.85rem 1.2rem; border-left: 4px solid ${color};`;
+        row.style.cssText = `margin-bottom: 0; padding: 0.85rem 1.2rem; border-left: 4px solid ${styleMap.color};`;
 
         row.innerHTML = `
             <div class="setting-info">
                 <h4 style="font-size: 0.94rem; color: var(--text-main); margin-bottom: 2px;">
-                    ${escapeHTML(tx.title)} ${badge}
+                    ${escapeHTML(tx.title)}
+                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 6px; background: ${styleMap.bg}; color: ${styleMap.color}; margin-left: 6px;">${styleMap.badge}</span>
                 </h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
                     ${escapeHTML(tx.category)} • Por: <strong>${escapeHTML(tx.author_name || 'Miembro')}</strong> • ${escapeHTML(displayDate)}
                 </p>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-size: 1rem; font-weight: 800; color: ${color};">${sign}${formatCOP(tx.amount)}</span>
+                <span style="font-size: 1rem; font-weight: 800; color: ${styleMap.color};">${styleMap.sign}${formatCOP(tx.amount)}</span>
                 <button type="button" class="btn-outline btn-del-fam-tx" style="padding: 4px 8px; font-size: 0.75rem; border-color: transparent; color: var(--text-muted);">✕</button>
             </div>
         `;
@@ -585,7 +670,6 @@ function bindSetupEvents() {
 }
 
 function bindWorkspaceEvents() {
-    // 1. Cambio entre las 3 Pestañas del Ecosistema Familiar
     const tabBtns = document.querySelectorAll('.fam-tab-btn');
     const tabPanes = document.querySelectorAll('.fam-tab-pane');
     tabBtns.forEach(btn => {
@@ -605,7 +689,6 @@ function bindWorkspaceEvents() {
         });
     });
 
-    // 2. Filtro de Mes Global
     const monthFilter = document.getElementById('familyMonthFilter');
     if (monthFilter) {
         monthFilter.addEventListener('change', (e) => {
@@ -615,7 +698,6 @@ function bindWorkspaceEvents() {
         });
     }
 
-    // 3. Eventos del Mural
     const colorBtns = document.querySelectorAll('.color-tag-btn');
     colorBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -676,15 +758,11 @@ function bindWorkspaceEvents() {
         });
     });
 
-    const searchInput = document.getElementById('boardSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            searchQuery = e.target.value;
-            renderBoardGrid();
-        });
-    }
+    document.getElementById('boardSearchInput')?.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        renderBoardGrid();
+    });
 
-    // 4. Eventos de Flujo Mensual Conjunto (Gasto / Aporte / Reserva)
     const txTypeBtns = document.querySelectorAll('.fam-tx-type');
     const famCatSelect = document.getElementById('famTxCategory');
     txTypeBtns.forEach(btn => {
@@ -726,7 +804,15 @@ function bindWorkspaceEvents() {
             if (!title || !amount) return;
 
             const dbType = selectedTxType === 'ingreso' ? 'ingreso' : 'gasto';
-            if (selectedTxType === 'reserva') category = 'Ahorro';
+            let nature = selectedTxType === 'ingreso' ? 'ingreso' : 'operativo';
+            if (selectedTxType === 'reserva') {
+                category = 'Ahorro';
+                nature = 'reserva';
+            } else if (category === 'Deudas') {
+                nature = 'deuda';
+            } else if (category === 'Inversión') {
+                nature = 'inversion';
+            }
 
             const { error } = await supabase.from('finance_transactions').insert({
                 user_id: currentUser.id,
@@ -735,9 +821,10 @@ function bindWorkspaceEvents() {
                 title,
                 amount,
                 type: dbType,
+                nature,
                 category,
                 is_recurring: isRecurring,
-                transaction_date: new Date().toISOString().slice(0, 10)
+                transaction_date: getTodayISO()
             });
 
             if (error) {
@@ -755,25 +842,21 @@ function bindWorkspaceEvents() {
         });
     }
 
-    const btnSaveFamBudget = document.getElementById('btnSaveFamBudget');
-    if (btnSaveFamBudget) {
-        btnSaveFamBudget.addEventListener('click', async () => {
-            if (!activeHousehold) return;
-            const newLimit = Number(document.getElementById('famBudgetInput')?.value || 0);
-            const { error } = await supabase
-                .from('households')
-                .update({ monthly_budget: newLimit })
-                .eq('id', activeHousehold.id);
+    document.getElementById('btnSaveFamBudget')?.addEventListener('click', async () => {
+        if (!activeHousehold) return;
+        const newLimit = Number(document.getElementById('famBudgetInput')?.value || 0);
+        const { error } = await supabase
+            .from('households')
+            .update({ monthly_budget: newLimit })
+            .eq('id', activeHousehold.id);
 
-            if (!error) {
-                activeHousehold.monthly_budget = newLimit;
-                updateEcosystemKPIs();
-                showToast('Presupuesto familiar actualizado', 'success');
-            }
-        });
-    }
+        if (!error) {
+            activeHousehold.monthly_budget = newLimit;
+            updateEcosystemKPIs();
+            showToast('Presupuesto familiar actualizado', 'success');
+        }
+    });
 
-    // 5. Eventos de Bóveda de Datos Importantes
     const impForm = document.getElementById('importantDataForm');
     if (impForm) {
         impForm.addEventListener('submit', async (e) => {
@@ -820,6 +903,12 @@ function subscribeToFamilyRealtime() {
             if (document.getElementById('activeHouseholdWorkspace')) loadAllFamilyData();
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'household_important_data' }, () => {
+            if (document.getElementById('activeHouseholdWorkspace')) loadAllFamilyData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_items' }, () => {
+            if (document.getElementById('activeHouseholdWorkspace')) loadAllFamilyData();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'financial_commitments' }, () => {
             if (document.getElementById('activeHouseholdWorkspace')) loadAllFamilyData();
         })
         .subscribe();

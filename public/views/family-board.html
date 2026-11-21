@@ -203,11 +203,14 @@
             </button>
           </form>
 
-          <!-- Próximos Eventos de la Familia -->
+          <!-- Próximos Eventos y Cuotas de la Familia -->
           <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
-            <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.8rem;">📅 Agenda Familiar</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+              <h4 style="font-size: 0.88rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin: 0;">📅 Agenda Familiar</h4>
+              <button type="button" class="btn-outline encrypted-route" data-target="/views/agenda.html" style="padding: 3px 8px; font-size: 0.72rem;">Ver todo →</button>
+            </div>
             <div id="upcomingEventsList" style="display: flex; flex-direction: column; gap: 0.6rem;">
-              <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sin eventos programados.</p>
+              <p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">Sin eventos ni cuotas programadas.</p>
             </div>
           </div>
         </div>
@@ -275,6 +278,8 @@
                   <option value="Aseo">🧼 Aseo y Limpieza</option>
                   <option value="Ahorro">🏦 Fondo de Emergencia (Reserva)</option>
                   <option value="Aporte">🤝 Aporte al Fondo Común</option>
+                  <option value="Deudas">💳 Deudas / Cuotas</option>
+                  <option value="Inversión">📈 Inversión Familiar</option>
                   <option value="Otros">📦 Otros</option>
                 </select>
               </div>
@@ -300,7 +305,7 @@
           </div>
         </div>
 
-        <!-- Panel Derecho: Aportes por Miembro + Libro Mayor Familiar -->
+        <!-- Panel Derecho: Aportes por Miembro + Compromisos + Libro Mayor Familiar -->
         <div class="settings-content" style="padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem;">
           
           <!-- Resumen de Participación por Miembro -->
@@ -308,6 +313,19 @@
             <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.9rem;">Participación y Pagos por Miembro (Periodo Seleccionado)</h3>
             <div id="famMemberContributions" style="display: flex; flex-direction: column; gap: 0.7rem;">
               <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Sin movimientos familiares registrados en este mes.</p>
+            </div>
+          </div>
+
+          <!-- Deudas e Inversiones Compartidas del Hogar -->
+          <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.8rem;">
+              <h3 style="font-size: 1rem; font-weight: 700; margin: 0;">💳 Cuotas de Deudas e Inversiones del Hogar</h3>
+              <button type="button" class="btn-outline encrypted-route" data-target="/views/finance.html" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-color: #a855f7; color: #a855f7; font-weight: 700;">
+                + Configurar en Finanzas
+              </button>
+            </div>
+            <div id="famCommitmentsList" style="display: flex; flex-direction: column; gap: 0.65rem;">
+              <p style="color: var(--text-muted); font-size: 0.84rem; margin: 0;">Sin deudas ni inversiones compartidas programadas.</p>
             </div>
           </div>
 

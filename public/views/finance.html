@@ -1,7 +1,7 @@
 <!-- public/views/finance.html -->
 <div class="settings-wrapper">
   <!-- Cabecera del Ecosistema Financiero -->
-  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; align-items: center; gap: 1.2rem;">
       <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -11,7 +11,7 @@
       </button>
       <div>
         <h1 class="settings-title" style="margin: 0;">Flujo Financiero</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Contabilidad neutral, presupuesto base cero, reservas patrimoniales y libro mayor</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Contabilidad neutral, presupuesto base cero, deudas, inversiones y libro mayor</p>
       </div>
     </div>
 
@@ -25,9 +25,9 @@
       </button>
     </div>
 
-    <!-- Selector de Periodo y Exportación CSV -->
-    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
-      <select id="finMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.88rem; cursor: pointer; background: var(--panel-bg);">
+    <!-- Selector de Periodo, Acceso a Agenda y Exportación CSV -->
+    <div style="display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap;">
+      <select id="finMonthFilter" class="form-input" style="width: auto; padding: 0.6rem 1rem; font-size: 0.86rem; cursor: pointer; background: var(--panel-bg);">
         <option value="all">Todo el historial</option>
         <option value="01">Enero</option>
         <option value="02">Febrero</option>
@@ -43,13 +43,17 @@
         <option value="12">Diciembre</option>
       </select>
 
-      <button type="button" id="btnExportCSV" class="btn-outline" style="padding: 0.65rem 1.1rem; background: var(--panel-bg);">
+      <button type="button" class="btn-outline encrypted-route" data-target="/views/agenda.html" style="padding: 0.62rem 1rem; background: var(--panel-bg); font-size: 0.83rem; font-weight: 700;">
+        📅 Ver Agenda
+      </button>
+
+      <button type="button" id="btnExportCSV" class="btn-outline" style="padding: 0.62rem 1rem; background: var(--panel-bg); font-size: 0.83rem;">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
           <line x1="12" y1="15" x2="12" y2="3"></line>
         </svg>
-        Exportar CSV
+        CSV
       </button>
     </div>
   </div>
@@ -58,37 +62,37 @@
   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
     
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Liquidez Disponible (Caja)</span>
-      <h2 id="finNetBalance" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--primary-neon);">$0.00</h2>
-      <span id="finBalanceStatus" style="font-size: 0.78rem; color: var(--text-muted);">Excedente libre: $0 | En Reserva: $0</span>
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Liquidez Disponible (Caja)</span>
+      <h2 id="finNetBalance" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--primary-neon);">$0</h2>
+      <span id="finBalanceStatus" style="font-size: 0.78rem; color: var(--text-muted);">Libre en caja: $0 | En Reserva: $0</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ingresos Operativos</span>
-      <h2 id="finTotalIncome" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: #10b981;">$0.00</h2>
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Ingresos Operativos</span>
+      <h2 id="finTotalIncome" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: #10b981;">$0</h2>
       <span id="finIncomeCount" style="font-size: 0.78rem; color: var(--text-muted);">0 entradas registradas</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Gastos Operativos (Fijos + Var)</span>
-      <h2 id="finTotalExpense" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--danger-color);">$0.00</h2>
-      <span id="finRecurringSum" style="font-size: 0.78rem; color: var(--text-muted);">Fijos: $0 | Variables: $0</span>
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Gastos & Servicio de Deuda</span>
+      <h2 id="finTotalExpense" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--danger-color, #ef4444);">$0</h2>
+      <span id="finRecurringSum" style="font-size: 0.78rem; color: var(--text-muted);">Operativo: $0 | Deudas: $0</span>
     </div>
 
     <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.4rem; box-shadow: var(--shadow-base);">
-      <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Ahorro & Fondo de Reserva</span>
-      <h2 id="finSavingsRate" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--info-color);">0%</h2>
-      <span id="finSavingsHint" style="font-size: 0.78rem; color: var(--text-muted);">Reserva acumulada: $0</span>
+      <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Patrimonio (Reserva + Inversión)</span>
+      <h2 id="finSavingsRate" style="font-size: 1.8rem; font-weight: 800; margin: 0.3rem 0; color: var(--info-color, #0ea5e9);">0%</h2>
+      <span id="finSavingsHint" style="font-size: 0.78rem; color: var(--text-muted);">Reserva: $0 | Inversión: $0</span>
     </div>
 
   </div>
 
-  <!-- Fila 2: Termómetro de Presupuesto Mensual (Evalúa Gastos Operativos vs Tope) -->
+  <!-- Fila 2: Termómetro de Presupuesto Mensual -->
   <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.8rem; box-shadow: var(--shadow-base);">
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.8rem;">
       <div>
         <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Ejecución Presupuestal del Periodo</h3>
-        <p id="finBudgetAlertText" style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">El ahorro y fondo de emergencia no penalizan tu límite de gastos operativos.</p>
+        <p id="finBudgetAlertText" style="font-size: 0.82rem; color: var(--text-muted); margin: 2px 0 0 0;">El ahorro y las inversiones no penalizan tu límite de gastos operativos.</p>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         <input type="number" id="finBudgetLimitInput" class="form-input" placeholder="Tope mensual ($)" min="0" step="10000" style="width: 170px; padding: 0.5rem 0.8rem; font-size: 0.85rem;">
@@ -96,123 +100,279 @@
       </div>
     </div>
 
-    <!-- Barra de Progreso del Presupuesto -->
     <div style="width: 100%; height: 12px; background: var(--bg-color); border-radius: 10px; overflow: hidden; border: 1px solid var(--border-card);">
       <div id="finBudgetProgressBar" style="width: 0%; height: 100%; background: var(--primary-neon); transition: width 0.4s ease, background-color 0.3s ease;"></div>
     </div>
   </div>
 
   <!-- Fila 3: Contenedor Principal -->
-  <div class="settings-container" style="grid-template-columns: 360px 1fr;">
+  <div class="settings-container" style="grid-template-columns: 375px 1fr;">
     
-    <!-- COLUMNA IZQUIERDA: FORMULARIO CONTABLE DE 3 VÍAS -->
-    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.8rem;">
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE 4 MODOS (GASTO / INGRESO / RESERVA / DEUDA E INVERSIÓN) -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.6rem;">
       
-      <form id="financeTxForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Asiento Contable</h3>
+      <div style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Registrar Operación</h3>
 
-        <!-- Selector de 3 Naturalezas Contables: Gasto / Ingreso / Reserva (Punto Medio) -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 1rem;">
-          <button type="button" class="btn-outline tx-type-btn active" data-type="gasto" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; border-color: var(--danger-color); color: var(--danger-color); font-weight: 700;">
+        <!-- Selector de 4 Modos -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 1.1rem;">
+          <button type="button" class="btn-outline tx-type-btn active" data-type="gasto" style="justify-content: center; padding: 0.58rem 0.4rem; font-size: 0.78rem; border-color: var(--danger-color, #ef4444); color: var(--danger-color, #ef4444); font-weight: 700;">
             ↓ Gasto
           </button>
-          <button type="button" class="btn-outline tx-type-btn" data-type="ingreso" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; font-weight: 700;">
+          <button type="button" class="btn-outline tx-type-btn" data-type="ingreso" style="justify-content: center; padding: 0.58rem 0.4rem; font-size: 0.78rem; font-weight: 700;">
             ↑ Ingreso
           </button>
-          <button type="button" class="btn-outline tx-type-btn" data-type="reserva" style="justify-content: center; padding: 0.6rem 0.4rem; font-size: 0.78rem; font-weight: 700;" title="Descuenta del disponible pero suma a tu Fondo/Ahorro sin inflar los gastos">
+          <button type="button" class="btn-outline tx-type-btn" data-type="reserva" style="justify-content: center; padding: 0.58rem 0.4rem; font-size: 0.78rem; font-weight: 700;">
             🏦 Reserva
+          </button>
+          <button type="button" class="btn-outline tx-type-btn" data-type="compromiso" style="justify-content: center; padding: 0.58rem 0.4rem; font-size: 0.78rem; font-weight: 700;" title="Configura cuotas flexibles y trázalas automáticamente en la Agenda">
+            💳 Deuda / Inv.
           </button>
         </div>
 
-        <div style="margin-bottom: 0.8rem;">
-          <label for="txTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto o Rubro</label>
-          <input type="text" id="txTitleInput" class="form-input" placeholder="Ej. Arriendo, Mercado, Fondo Emergencia..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
-          <div style="flex: 1.2;">
-            <label for="txAmountInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Monto ($)</label>
-            <input type="number" id="txAmountInput" class="form-input" placeholder="0.00" min="0.01" step="0.01" required style="padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 700;">
+        <!-- MODO A: ASIENTO CONTABLE NORMAL (GASTO / INGRESO / RESERVA) -->
+        <form id="financeTxForm">
+          <div style="margin-bottom: 0.8rem;">
+            <label for="txTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Concepto o Rubro</label>
+            <input type="text" id="txTitleInput" class="form-input" placeholder="Ej. Arriendo, Mercado, Fondo Emergencia..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
           </div>
-          <div style="flex: 1;">
-            <label for="txDateInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha</label>
-            <input type="date" id="txDateInput" class="form-input" required style="padding: 0.65rem 0.6rem; font-size: 0.82rem;">
+
+          <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+            <div style="flex: 1.2;">
+              <label for="txAmountInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Monto ($)</label>
+              <input type="number" id="txAmountInput" class="form-input" placeholder="0.00" min="0.01" step="0.01" required style="padding: 0.65rem 0.9rem; font-size: 0.9rem; font-weight: 700;">
+            </div>
+            <div style="flex: 1;">
+              <label for="txDateInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha</label>
+              <input type="date" id="txDateInput" class="form-input" required style="padding: 0.65rem 0.6rem; font-size: 0.82rem;">
+            </div>
           </div>
-        </div>
 
-        <div style="margin-bottom: 0.9rem;">
-          <label for="txCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Clasificación Contable</label>
-          <select id="txCategorySelect" class="form-input" style="padding: 0.65rem; font-size: 0.85rem; cursor: pointer;">
-            <option value="Hogar">🏠 Vivienda / Arriendo</option>
-            <option value="Servicios">⚡ Recibos / Servicios Fijos</option>
-            <option value="Alimentación">🛒 Comida / Mercado</option>
-            <option value="Aseo">🧼 Aseo y Limpieza</option>
-            <option value="Ahorro">🏦 Fondo de Emergencia / Reserva</option>
-            <option value="Aporte Hogar">🤝 Traslado / Aporte al Fondo Común</option>
-            <option value="Salario">💼 Salario / Ingreso Corriente</option>
-            <option value="Transporte">🚗 Transporte y Movilidad</option>
-            <option value="Salud">💊 Salud y Bienestar</option>
-            <option value="Deudas">💳 Créditos y Obligaciones</option>
-            <option value="Otros">📦 Gastos Variables / Otros</option>
-          </select>
-        </div>
+          <div style="margin-bottom: 0.9rem;">
+            <label for="txCategorySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Clasificación Contable</label>
+            <select id="txCategorySelect" class="form-input" style="padding: 0.65rem; font-size: 0.85rem; cursor: pointer;">
+              <option value="Hogar">🏠 Vivienda / Arriendo</option>
+              <option value="Servicios">⚡ Recibos / Servicios Fijos</option>
+              <option value="Alimentación">🛒 Comida / Mercado</option>
+              <option value="Aseo">🧼 Aseo y Limpieza</option>
+              <option value="Ahorro">🏦 Fondo de Emergencia / Reserva</option>
+              <option value="Aporte Hogar">🤝 Traslado / Aporte al Fondo Común</option>
+              <option value="Salario">💼 Salario / Ingreso Corriente</option>
+              <option value="Transporte">🚗 Transporte y Movilidad</option>
+              <option value="Salud">💊 Salud y Bienestar</option>
+              <option value="Deudas">💳 Créditos y Obligaciones</option>
+              <option value="Inversión">📈 Inversión / Activos</option>
+              <option value="Otros">📦 Gastos Variables / Otros</option>
+            </select>
+          </div>
 
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 0.8rem;">
-          <input type="checkbox" id="txRecurringCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
-          Es una obligación o cuota fija mensual (Contabilidad Fija)
-        </label>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--text-muted); cursor: pointer; margin-bottom: 0.8rem;">
+            <input type="checkbox" id="txRecurringCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+            Es una obligación o cuota fija mensual
+          </label>
 
-        <label id="txShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 1.1rem;">
-          <input type="checkbox" id="txShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
-          🏠 Incluir en la Contabilidad del Hogar
-        </label>
+          <label id="txShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.84rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 1.1rem;">
+            <input type="checkbox" id="txShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+            🏠 Incluir en la Contabilidad del Hogar
+          </label>
 
-        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">
-          Guardar en Libro Mayor
-        </button>
-      </form>
+          <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">
+            Guardar en Libro Mayor
+          </button>
+        </form>
+
+        <!-- MODO B: CONFIGURADOR DE DEUDAS E INVERSIONES CON CUOTAS FLEXIBLES -->
+        <form id="commitmentForm" style="display: none;">
+          <!-- Sub-selector: Deuda vs Inversión -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 0.9rem;">
+            <button type="button" class="btn-outline comm-kind-btn active" data-kind="deuda" style="justify-content: center; padding: 0.5rem; font-size: 0.78rem; border-color: #a855f7; color: #a855f7; font-weight: 700;">
+              💳 Deuda / Crédito
+            </button>
+            <button type="button" class="btn-outline comm-kind-btn" data-kind="inversion" style="justify-content: center; padding: 0.5rem; font-size: 0.78rem; font-weight: 700;">
+              📈 Inversión
+            </button>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label for="commTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Nombre de la Deuda o Inversión</label>
+            <input type="text" id="commTitleInput" class="form-input" placeholder="Ej. Cuota QUAC, Tarjeta NU, CDT..." required style="padding: 0.6rem 0.85rem; font-size: 0.86rem;">
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 0.75rem;">
+            <div style="flex: 1;">
+              <label for="commInstitutionInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Entidad (Opc.)</label>
+              <input type="text" id="commInstitutionInput" class="form-input" placeholder="Ej. NU, QUAC, Bancolombia" style="padding: 0.6rem 0.75rem; font-size: 0.83rem;">
+            </div>
+            <div style="flex: 1;">
+              <label for="commPrioritySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Prioridad Agenda</label>
+              <select id="commPrioritySelect" class="form-input" style="padding: 0.6rem; font-size: 0.83rem; cursor: pointer;">
+                <option value="critica">🔴 Crítica</option>
+                <option value="alta" selected>🟠 Alta</option>
+                <option value="media">🔵 Media</option>
+                <option value="baja">🟢 Baja</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 0.75rem;">
+            <div style="flex: 1;">
+              <label for="commQuotaAmount" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Valor por Cuota ($)</label>
+              <input type="number" id="commQuotaAmount" class="form-input" placeholder="Ej. 35402" min="1" step="0.01" required style="padding: 0.6rem 0.75rem; font-size: 0.88rem; font-weight: 700;">
+            </div>
+            <div style="flex: 1;">
+              <label for="commPrincipalAmount" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;" id="commPrincipalLabel">Deuda Total ($ Opc.)</label>
+              <input type="number" id="commPrincipalAmount" class="form-input" placeholder="Ej. 1200000" min="0" step="100" style="padding: 0.6rem 0.75rem; font-size: 0.85rem;">
+            </div>
+          </div>
+
+          <!-- CONFIGURACIÓN FLEXIBLE DE PERIODICIDAD Y DÍAS -->
+          <div style="background: var(--bg-color); padding: 0.85rem; border-radius: 12px; border: 1px solid var(--border-card); margin-bottom: 0.8rem;">
+            <div style="margin-bottom: 0.65rem;">
+              <label for="commFrequencySelect" style="display: block; font-size: 0.76rem; font-weight: 700; color: var(--primary-neon); margin-bottom: 4px; text-transform: uppercase;">🗓️ Frecuencia de Cuotas</label>
+              <select id="commFrequencySelect" class="form-input" style="padding: 0.55rem; font-size: 0.84rem; cursor: pointer;">
+                <option value="mensual">Mensual (1 día fijo al mes — ej. NU día 28)</option>
+                <option value="quincenal">Quincenal (2 días específicos — ej. QUAC días 2 y 17)</option>
+                <option value="dias_especificos">Días específicos (N cuotas al mes)</option>
+                <option value="cada_n_dias">Cada N días (ej. semanal cada 7 o cada 15 días)</option>
+              </select>
+            </div>
+
+            <!-- Panel: Mensual (1 día) -->
+            <div id="commFreqMonthlyBox" style="display: flex; gap: 8px; align-items: center;">
+              <div style="flex: 1;">
+                <label for="commSingleDayInput" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">Día de pago al mes (1–31)</label>
+                <input type="number" id="commSingleDayInput" class="form-input" value="28" min="1" max="31" style="padding: 0.5rem 0.7rem; font-size: 0.86rem; font-weight: 700;">
+              </div>
+            </div>
+
+            <!-- Panel: Quincenal (2 días editables) -->
+            <div id="commFreqBiweeklyBox" style="display: none; gap: 8px;">
+              <div style="flex: 1;">
+                <label for="commBiDay1" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">1.er día del mes</label>
+                <input type="number" id="commBiDay1" class="form-input" value="2" min="1" max="31" style="padding: 0.5rem 0.7rem; font-size: 0.86rem; font-weight: 700;">
+              </div>
+              <div style="flex: 1;">
+                <label for="commBiDay2" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">2.do día del mes</label>
+                <input type="number" id="commBiDay2" class="form-input" value="17" min="1" max="31" style="padding: 0.5rem 0.7rem; font-size: 0.86rem; font-weight: 700;">
+              </div>
+            </div>
+
+            <!-- Panel: Días específicos (N cuotas al mes) -->
+            <div id="commFreqCustomBox" style="display: none; flex-direction: column; gap: 6px;">
+              <div style="display: flex; gap: 8px;">
+                <div style="width: 110px;">
+                  <label for="commPerMonthCount" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">Cuotas / mes</label>
+                  <input type="number" id="commPerMonthCount" class="form-input" value="3" min="1" max="10" style="padding: 0.5rem 0.6rem; font-size: 0.84rem; font-weight: 700;">
+                </div>
+                <div style="flex: 1;">
+                  <label for="commCustomDaysInput" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">Días del mes (separados por coma)</label>
+                  <input type="text" id="commCustomDaysInput" class="form-input" value="5, 15, 25" placeholder="Ej. 2, 12, 22" style="padding: 0.5rem 0.7rem; font-size: 0.84rem; font-weight: 700;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel: Cada N días -->
+            <div id="commFreqIntervalBox" style="display: none; gap: 8px;">
+              <div style="flex: 1;">
+                <label for="commIntervalDaysInput" style="display: block; font-size: 0.74rem; color: var(--text-muted); margin-bottom: 3px;">Repetir cada cuántos días</label>
+                <input type="number" id="commIntervalDaysInput" class="form-input" value="15" min="1" max="365" style="padding: 0.5rem 0.7rem; font-size: 0.86rem; font-weight: 700;">
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 6px; margin-bottom: 0.75rem;">
+            <div>
+              <label for="commTotalInstallments" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Total Cuotas</label>
+              <input type="number" id="commTotalInstallments" class="form-input" placeholder="Vacío = ∞" min="1" max="120" style="padding: 0.55rem 0.6rem; font-size: 0.83rem;">
+            </div>
+            <div>
+              <label for="commPaidInstallments" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Ya Pagadas</label>
+              <input type="number" id="commPaidInstallments" class="form-input" value="0" min="0" style="padding: 0.55rem 0.6rem; font-size: 0.83rem;">
+            </div>
+            <div>
+              <label for="commStartDate" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Desde Fecha</label>
+              <input type="date" id="commStartDate" class="form-input" required style="padding: 0.55rem 0.45rem; font-size: 0.78rem;">
+            </div>
+          </div>
+
+          <!-- Vista previa en vivo del calendario de cuotas -->
+          <div id="commSchedulePreview" style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-color); padding: 0.65rem 0.8rem; border-radius: 10px; border-left: 3px solid #a855f7; margin-bottom: 0.8rem; line-height: 1.45;">
+            Completa el valor y los días para previsualizar las cuotas.
+          </div>
+
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-main); font-weight: 600; cursor: pointer; margin-bottom: 0.65rem;">
+            <input type="checkbox" id="commTraceAgendaCheck" checked style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+            📅 Trazar cuotas automáticamente en la Agenda
+          </label>
+
+          <label id="commShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 1rem;">
+            <input type="checkbox" id="commShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+            🏠 Compartir compromiso con el Hogar
+          </label>
+
+          <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.8rem;">
+            Guardar y Proyectar Cuotas
+          </button>
+        </form>
+      </div>
 
       <!-- Plantillas Rápidas de Economía del Hogar (1 Clic) -->
       <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px solid var(--border-card);">
         <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.6rem;">⚡ Asientos Rápidos del Hogar</h4>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.8rem;">Autocompleta con la clasificación contable correcta:</p>
         <div style="display: flex; flex-wrap: wrap; gap: 6px;">
           <button type="button" class="btn-outline quick-bill-btn" data-title="Pago de Arriendo" data-cat="Hogar" data-mode="gasto" data-rec="true">🏠 Arriendo</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Recibos / Servicios (Agua, Luz, Gas, Net)" data-cat="Servicios" data-mode="gasto" data-rec="true">⚡ Recibos</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Recibos / Servicios" data-cat="Servicios" data-mode="gasto" data-rec="true">⚡ Recibos</button>
           <button type="button" class="btn-outline quick-bill-btn" data-title="Comida / Mercado" data-cat="Alimentación" data-mode="gasto" data-rec="false">🛒 Comida</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Productos de Aseo y Limpieza" data-cat="Aseo" data-mode="gasto" data-rec="false">🧼 Aseo</button>
-          <button type="button" class="btn-outline quick-bill-btn" data-title="Fondo de Emergencia Mensual" data-cat="Ahorro" data-mode="reserva" data-rec="true">🏦 Fondo Emergencia</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Productos de Aseo" data-cat="Aseo" data-mode="gasto" data-rec="false">🧼 Aseo</button>
+          <button type="button" class="btn-outline quick-bill-btn" data-title="Fondo de Emergencia" data-cat="Ahorro" data-mode="reserva" data-rec="true">🏦 Reserva</button>
         </div>
       </div>
 
     </div>
 
-    <!-- COLUMNA DERECHA: ESTADO DE RESULTADOS Y LIBRO MAYOR -->
-    <div class="settings-content" style="padding: 2.2rem; display: flex; flex-direction: column; gap: 2rem;">
+    <!-- COLUMNA DERECHA: CARTERA DE DEUDAS/INVERSIONES + ESTRUCTURA + LIBRO MAYOR -->
+    <div class="settings-content" style="padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem;">
+
+      <!-- Bloque 1: Cartera Activa de Deudas e Inversiones -->
+      <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.4rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem;">
+          <div>
+            <h3 style="font-size: 1.05rem; font-weight: 700; margin: 0;">💳 Deudas e Inversiones Programadas</h3>
+            <p id="finCommitmentsSummary" style="font-size: 0.78rem; color: var(--text-muted); margin: 2px 0 0 0;">Sin compromisos programados en este alcance.</p>
+          </div>
+          <button type="button" id="btnQuickNewCommitment" class="btn-outline" style="padding: 0.42rem 0.85rem; font-size: 0.78rem; border-color: #a855f7; color: #a855f7; font-weight: 700;">
+            + Nueva Deuda / Inv.
+          </button>
+        </div>
+        <div id="finCommitmentsList" style="display: flex; flex-direction: column; gap: 0.8rem;">
+          <p style="color: var(--text-muted); font-size: 0.84rem; margin: 0;">Usa el modo <strong>💳 Deuda / Inv.</strong> a la izquierda para registrar cuotas mensuales, quincenales o en días específicos.</p>
+        </div>
+      </div>
       
-      <!-- Bloque Superior: Estructura Contable (Gastos Fijos, Variables y Reserva) -->
-      <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.5rem;">
-        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Estructura de Egresos y Reservas por Categoría</h3>
+      <!-- Bloque 2: Estructura Contable -->
+      <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.4rem;">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;">Estructura de Egresos, Deudas e Inversiones por Categoría</h3>
         <div id="finCategoryBars" style="display: flex; flex-direction: column; gap: 0.75rem;">
           <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra movimientos para visualizar la estructura porcentual.</p>
         </div>
       </div>
 
-      <!-- Bloque Inferior: Libro Mayor de Movimientos -->
+      <!-- Bloque 3: Libro Mayor de Movimientos -->
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap;">
           <div style="display: flex; gap: 6px; flex-wrap: wrap;">
             <button type="button" class="btn-outline fin-list-filter active" data-filter="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
             <button type="button" class="btn-outline fin-list-filter" data-filter="ingreso">↑ Ingresos</button>
-            <button type="button" class="btn-outline fin-list-filter" data-filter="gasto">↓ Gastos Operativos</button>
-            <button type="button" class="btn-outline fin-list-filter" data-filter="reserva">🏦 Reservas / Ahorro</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="gasto">↓ Operativos</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="deuda">💳 Deudas</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="inversion">📈 Inversiones</button>
+            <button type="button" class="btn-outline fin-list-filter" data-filter="reserva">🏦 Reservas</button>
             <button type="button" class="btn-outline fin-list-filter" data-filter="recurring">🔄 Fijos</button>
           </div>
 
-          <input type="search" id="finSearchInput" class="form-input" placeholder="Buscar concepto o categoría..." style="max-width: 240px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
+          <input type="search" id="finSearchInput" class="form-input" placeholder="Buscar concepto o categoría..." style="max-width: 220px; padding: 0.5rem 0.9rem; font-size: 0.85rem;">
         </div>
 
-        <!-- Lista de Transacciones -->
         <div id="finTransactionsList" style="display: flex; flex-direction: column; gap: 0.7rem; max-height: 460px; overflow-y: auto;">
           <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2rem 0;">Cargando movimientos financieros...</p>
         </div>
