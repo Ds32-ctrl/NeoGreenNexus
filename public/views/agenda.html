@@ -1,0 +1,212 @@
+<!-- public/views/agenda.html -->
+<div class="settings-wrapper">
+  <!-- Cabecera Principal -->
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+    <div style="display: flex; align-items: center; gap: 1.2rem;">
+      <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <h1 class="settings-title" style="margin: 0;">Centro de Agendas</h1>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
+          Organización por tiempo, prioridad, calendario mensual y trazabilidad de cuotas e inversiones
+        </p>
+      </div>
+    </div>
+
+    <!-- Selector de Alcance + Acceso Rápido a Finanzas -->
+    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+      <div id="agendaScopeBox" style="display: none; background: var(--bg-color); padding: 4px; border-radius: 12px; border: 1px solid var(--border-card);">
+        <button type="button" class="btn-outline agenda-scope-btn active" data-scope="all" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; border: none; background: var(--panel-bg); color: var(--primary-neon); font-weight: 700;">
+          🌐 Todo
+        </button>
+        <button type="button" class="btn-outline agenda-scope-btn" data-scope="personal" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; border: none;">
+          👤 Personal
+        </button>
+        <button type="button" class="btn-outline agenda-scope-btn" data-scope="household" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; border: none;">
+          🏠 Hogar
+        </button>
+      </div>
+
+      <button type="button" class="btn-outline encrypted-route" data-target="/views/finance.html" style="padding: 0.6rem 1rem; background: var(--panel-bg); font-size: 0.82rem; font-weight: 700;">
+        💳 Gestionar Deudas / Inversiones
+      </button>
+    </div>
+  </div>
+
+  <!-- Fila 1: 4 Tarjetas KPI de Agenda -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.2rem; margin-bottom: 1.8rem;">
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Vencidos y Críticos</span>
+      <h2 id="agKpiCritical" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--danger-color, #ef4444);">0</h2>
+      <span id="agKpiCriticalSub" style="font-size: 0.78rem; color: var(--text-muted);">Atención inmediata</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Próximos 7 Días</span>
+      <h2 id="agKpiWeek" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--warning-color, #f59e0b);">0</h2>
+      <span id="agKpiWeekSub" style="font-size: 0.78rem; color: var(--text-muted);">Pendientes esta semana</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Compromisos Financieros (Mes)</span>
+      <h2 id="agKpiMonthMoney" style="font-size: 1.7rem; font-weight: 800; margin: 0.25rem 0; color: #a855f7;">$0</h2>
+      <span id="agKpiMonthMoneySub" style="font-size: 0.78rem; color: var(--text-muted);">Cuotas e inversiones pendientes</span>
+    </div>
+
+    <div style="background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 20px; padding: 1.3rem; box-shadow: var(--shadow-base);">
+      <span style="font-size: 0.76rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Cumplimiento Total</span>
+      <h2 id="agKpiDone" style="font-size: 1.8rem; font-weight: 800; margin: 0.25rem 0; color: var(--primary-neon);">0%</h2>
+      <span id="agKpiDoneSub" style="font-size: 0.78rem; color: var(--text-muted);">0 de 0 completados</span>
+    </div>
+  </div>
+
+  <!-- Fila 2: Layout Principal -->
+  <div class="settings-container" style="grid-template-columns: 350px 1fr;">
+
+    <!-- COLUMNA IZQUIERDA: FORMULARIO DE NUEVO ÍTEM EN AGENDA -->
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <form id="agendaItemForm" style="background: var(--panel-bg); padding: 1.4rem; border-radius: 18px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-main);">+ Programar en Agenda</h3>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="agTitleInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Título o Actividad</label>
+          <input type="text" id="agTitleInput" class="form-input" placeholder="Ej. Pagar internet, Cita médica..." required style="padding: 0.65rem 0.9rem; font-size: 0.88rem;">
+        </div>
+
+        <div style="margin-bottom: 0.8rem;">
+          <label for="agDescInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Detalle / Notas (Opcional)</label>
+          <textarea id="agDescInput" class="form-input" rows="2" placeholder="Referencia, lugar o recordatorio..." style="padding: 0.6rem 0.9rem; font-size: 0.85rem; resize: vertical;"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1;">
+            <label for="agTypeSelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Tipo</label>
+            <select id="agTypeSelect" class="form-input" style="padding: 0.6rem; font-size: 0.84rem; cursor: pointer;">
+              <option value="tarea">✅ Tarea</option>
+              <option value="evento">📅 Evento / Cita</option>
+              <option value="alerta">🚨 Alerta</option>
+              <option value="pago_fijo">⚡ Pago Fijo</option>
+              <option value="cuota_deuda">💳 Cuota Deuda</option>
+              <option value="aporte_inversion">📈 Aporte Inversión</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label for="agPrioritySelect" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Prioridad</label>
+            <select id="agPrioritySelect" class="form-input" style="padding: 0.6rem; font-size: 0.84rem; cursor: pointer;">
+              <option value="critica">🔴 Crítica</option>
+              <option value="alta">🟠 Alta</option>
+              <option value="media" selected>🔵 Media</option>
+              <option value="baja">🟢 Baja</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 0.8rem;">
+          <div style="flex: 1.2;">
+            <label for="agDateInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Fecha Límite</label>
+            <input type="date" id="agDateInput" class="form-input" required style="padding: 0.6rem; font-size: 0.84rem;">
+          </div>
+          <div style="flex: 0.8;">
+            <label for="agTimeInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Hora (Opc.)</label>
+            <input type="time" id="agTimeInput" class="form-input" style="padding: 0.6rem; font-size: 0.84rem;">
+          </div>
+        </div>
+
+        <div id="agAmountWrap" style="margin-bottom: 0.8rem;">
+          <label for="agAmountInput" style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Monto Asociado ($ Opcional)</label>
+          <input type="number" id="agAmountInput" class="form-input" placeholder="Ej. 150000" min="0" step="100" style="padding: 0.6rem 0.9rem; font-size: 0.88rem; font-weight: 700;">
+        </div>
+
+        <div id="agHouseholdControls" style="display: none; margin-bottom: 0.9rem; padding: 0.8rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-card);">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.83rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 0.6rem;">
+            <input type="checkbox" id="agShareHouseholdCheck" style="width: 16px; height: 16px; accent-color: var(--primary-neon);">
+            🏠 Compartir en Agenda del Hogar
+          </label>
+          <div>
+            <label for="agAssignedSelect" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px;">Responsable</label>
+            <select id="agAssignedSelect" class="form-input" style="padding: 0.5rem; font-size: 0.82rem; cursor: pointer;">
+              <option value="Todos">👨‍👩‍👧‍👦 Todos</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <span style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">Etiqueta de Color</span>
+          <div id="agColorPicker" style="display: flex; gap: 10px;">
+            <button type="button" class="ag-color-btn active" data-color="#10b981" style="width: 26px; height: 26px; border-radius: 50%; background: #10b981; border: 2px solid var(--text-main); cursor: pointer;"></button>
+            <button type="button" class="ag-color-btn" data-color="#0ea5e9" style="width: 26px; height: 26px; border-radius: 50%; background: #0ea5e9; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="ag-color-btn" data-color="#a855f7" style="width: 26px; height: 26px; border-radius: 50%; background: #a855f7; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="ag-color-btn" data-color="#f59e0b" style="width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; border: 2px solid transparent; cursor: pointer;"></button>
+            <button type="button" class="ag-color-btn" data-color="#ef4444" style="width: 26px; height: 26px; border-radius: 50%; background: #ef4444; border: 2px solid transparent; cursor: pointer;"></button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-save" style="width: 100%; justify-content: center; margin: 0; padding: 0.75rem;">
+          Añadir a la Agenda
+        </button>
+      </form>
+
+      <!-- Acceso Informativo para Cuotas Recurrentes -->
+      <div style="background: var(--panel-bg); padding: 1.2rem; border-radius: 18px; border: 1px dashed var(--border-card);">
+        <h4 style="font-size: 0.84rem; font-weight: 700; color: var(--text-main); margin: 0 0 0.4rem 0;">💡 ¿Deuda a varias cuotas o Inversión mensual?</h4>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 0.8rem 0; line-height: 1.45;">
+          Registra créditos (como NU o QUAC) o inversiones desde <strong>Flujo Financiero</strong> para generar automáticamente todas las cuotas en tu calendario y descontarlas al marcarlas pagadas.
+        </p>
+        <button type="button" class="btn-outline encrypted-route" data-target="/views/finance.html" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.8rem;">
+          Ir a Deudas e Inversiones →
+        </button>
+      </div>
+    </div>
+
+    <!-- COLUMNA DERECHA: VISTAS ORGANIZADAS POR TIEMPO, PRIORIDAD Y CALENDARIO -->
+    <div class="settings-content" style="padding: 1.8rem; display: flex; flex-direction: column; gap: 1.4rem;">
+
+      <!-- Barra de Modos de Vista -->
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; border-bottom: 1px solid var(--border-card); padding-bottom: 1rem;">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-outline ag-view-btn active" data-view="timeline" style="border-color: var(--primary-neon); color: var(--primary-neon); font-weight: 700;">
+            ⏱️ Por Tiempo
+          </button>
+          <button type="button" class="btn-outline ag-view-btn" data-view="priority" style="font-weight: 700;">
+            🎯 Por Prioridad
+          </button>
+          <button type="button" class="btn-outline ag-view-btn" data-view="calendar" style="font-weight: 700;">
+            🗓️ Calendario
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <select id="agStatusFilter" class="form-input" style="width: auto; padding: 0.45rem 0.8rem; font-size: 0.82rem; cursor: pointer;">
+            <option value="pendiente">Solo Pendientes</option>
+            <option value="all">Todos los Estados</option>
+            <option value="completado">Completados</option>
+          </select>
+          <input type="search" id="agSearchInput" class="form-input" placeholder="Buscar en agenda..." style="max-width: 200px; padding: 0.45rem 0.85rem; font-size: 0.83rem;">
+        </div>
+      </div>
+
+      <!-- Chips de Filtro por Tipo -->
+      <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+        <button type="button" class="btn-outline ag-type-filter active" data-type="all" style="padding: 0.38rem 0.75rem; font-size: 0.78rem; border-color: var(--primary-neon); color: var(--primary-neon);">Todos</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="cuota_deuda" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">💳 Cuotas Deuda</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="aporte_inversion" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">📈 Inversiones</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="pago_fijo" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">⚡ Pagos Fijos</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="evento" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">📅 Eventos</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="tarea" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">✅ Tareas</button>
+        <button type="button" class="btn-outline ag-type-filter" data-type="alerta" style="padding: 0.38rem 0.75rem; font-size: 0.78rem;">🚨 Alertas</button>
+      </div>
+
+      <!-- Contenedor Dinámico (Línea de Tiempo / Prioridad / Calendario) -->
+      <div id="agendaMainContainer" style="display: flex; flex-direction: column; gap: 1.2rem;">
+        <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 2.5rem 0;">
+          Sincronizando agenda con Supabase...
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -2,6 +2,17 @@
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
+import { getActiveHousehold } from '../core/household.js';
+import { escapeHTML, formatCOP, summarizeTransactions } from '../services/finance.service.js';
+import {
+    loadAgendaItems,
+    sortAgendaItems,
+    completeAgendaItem,
+    getEffectivePriority,
+    PRIORITY_META,
+    AGENDA_TYPE_META,
+    diffDaysFromToday
+} from '../services/agenda.service.js';
 
 let clockInterval = null;
 let audioCtx = null;
@@ -9,16 +20,8 @@ let activeSource = null;
 let gainNode = null;
 let isPlayingAudio = false;
 let currentAudioMode = 'brown';
-
-// Utilidad para prevenir inyección XSS al renderizar texto del usuario
-function escapeHTML(str = '') {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+let activeHousehold = null;
+let currentAuthorName = 'Miembro';
 
 export async function initHomeHub() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,12 +30,16 @@ export async function initHomeHub() {
         return;
     }
 
+    const meta = user.user_metadata || {};
+    currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
+    activeHousehold = await getActiveHousehold(user.id);
+
     initClockAndWeather();
     initCalculator();
     initAmbientSynthesizer();
     await loadHubTelemetry(user.id);
 
-    // Formulario de creación rápida de alertas en family_board_posts
+    // Formulario de creación rápida (sincronizado con hogar si existe)
     const quickForm = document.getElementById('quickAlertForm');
     if (quickForm) {
         quickForm.addEventListener('submit', async (e) => {
@@ -48,7 +55,10 @@ export async function initHomeHub() {
             try {
                 const { error } = await supabase.from('family_board_posts').insert({
                     user_id: user.id,
-                    title: typeSelect.value.toUpperCase(),
+                    household_id: activeHousehold?.id || null,
+                    author_name: currentAuthorName,
+                    assigned_to: activeHousehold ? 'Todos' : 'Personal',
+                    title: typeSelect.value === 'alerta' ? 'Alerta Rápida' : typeSelect.value === 'evento' ? 'Evento Rápido' : 'Nota Rápida',
                     content: text,
                     category: typeSelect.value,
                     pinned: typeSelect.value === 'alerta'
@@ -66,6 +76,7 @@ export async function initHomeHub() {
             }
         });
     }
+
     if (window.nexusDesktop?.isDesktopApp) {
         await mountDesktopNativePanel();
     }
@@ -74,32 +85,47 @@ export async function initHomeHub() {
 // 1. TELEMETRÍA CONSOLIDADA DESDE SUPABASE
 async function loadHubTelemetry(userId) {
     try {
-        const [financeRes, tasksRes, inventoryRes, habitsRes, boardRes] = await Promise.all([
-            supabase.from('finance_transactions').select('amount, type, created_at').eq('user_id', userId),
+        const householdId = activeHousehold?.id || null;
+
+        let finQuery = supabase.from('finance_transactions').select('amount, type, category, nature, title, is_recurring, transaction_date, household_id');
+        let boardQuery = supabase.from('family_board_posts').select('id, title, content, category, event_date, created_at').order('created_at', { ascending: false }).limit(8);
+
+        if (householdId) {
+            finQuery = finQuery.or(`and(user_id.eq.${userId},household_id.is.null),household_id.eq.${householdId}`);
+            boardQuery = boardQuery.or(`and(user_id.eq.${userId},household_id.is.null),household_id.eq.${householdId}`);
+        } else {
+            finQuery = finQuery.eq('user_id', userId);
+            boardQuery = boardQuery.eq('user_id', userId);
+        }
+
+        const [financeRes, tasksRes, inventoryRes, habitsRes, boardRes, agendaItems] = await Promise.all([
+            finQuery,
             supabase.from('zone_tasks').select('id, title, frequency, is_completed').eq('user_id', userId).eq('is_completed', false),
             supabase.from('inventory_items').select('id, name, quantity, unit, min_stock, in_shopping_list').eq('user_id', userId),
             supabase.from('habits').select('id, title, current_streak').eq('user_id', userId),
-            supabase.from('family_board_posts').select('id, title, content, category, created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(8)
+            boardQuery,
+            loadAgendaItems({ userId, householdId, scope: 'all' }).catch(() => [])
         ]);
 
-        // A. Cálculo de Balance Financiero
+        // A. Cálculo de Balance Financiero Unificado
         const transactions = financeRes.data || [];
-        let income = 0, expense = 0;
-        transactions.forEach(t => {
-            if (t.type === 'ingreso') income += Number(t.amount || 0);
-            else expense += Number(t.amount || 0);
-        });
-        const balance = income - expense;
+        const summary = summarizeTransactions(transactions);
         const kpiBalance = document.getElementById('kpiBalance');
         const kpiFinanceSub = document.getElementById('kpiFinanceSub');
+
         if (kpiBalance) {
-            kpiBalance.textContent = `$${balance.toLocaleString('es-CO', { minimumFractionDigits: 2 })}`;
-            kpiBalance.style.color = balance >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
+            kpiBalance.textContent = formatCOP(summary.availableCash, 2);
+            kpiBalance.style.color = summary.availableCash >= 0 ? 'var(--primary-neon)' : 'var(--danger-color, #ef4444)';
         }
         if (kpiFinanceSub) {
-            kpiFinanceSub.textContent = transactions.length > 0
-                ? `Ingresos: $${income.toLocaleString('es-CO')} | Gastos: $${expense.toLocaleString('es-CO')}`
-                : 'Sin movimientos registrados';
+            if (transactions.length > 0) {
+                const extra = summary.reservedSavings + summary.investmentContributions > 0
+                    ? ` | Reserva/Inv: ${formatCOP(summary.reservedSavings + summary.investmentContributions)}`
+                    : '';
+                kpiFinanceSub.textContent = `Ingresos: ${formatCOP(summary.totalIncome)} | Egresos: ${formatCOP(summary.totalOutflows)}${extra}`;
+            } else {
+                kpiFinanceSub.textContent = 'Sin movimientos registrados';
+            }
         }
 
         // B. Tareas de Zonas Pendientes
@@ -136,35 +162,83 @@ async function loadHubTelemetry(userId) {
             }
         }
 
-        // E. Renderizar Feed Consolidado (Tablero + Tareas + Alertas de Despensa)
-        renderConsolidatedFeed(boardRes.data || [], pendingTasks, lowStockItems, userId);
+        // E. Renderizar Feed Consolidado (Agenda próxima + Tablero + Tareas + Despensa)
+        const pendingAgenda = sortAgendaItems(
+            (agendaItems || []).filter(item => item.status !== 'completado'),
+            'time'
+        ).slice(0, 6);
+
+        renderConsolidatedFeed(pendingAgenda, boardRes.data || [], pendingTasks, lowStockItems, userId);
 
     } catch (err) {
         console.error('Error cargando telemetría 360 Home:', err);
     }
 }
 
-function renderConsolidatedFeed(posts, tasks, lowStock, userId) {
+function renderConsolidatedFeed(agendaItems, posts, tasks, lowStock, userId) {
     const feedContainer = document.getElementById('hubFeedList');
     if (!feedContainer) return;
 
     feedContainer.innerHTML = '';
 
-    if (posts.length === 0 && tasks.length === 0 && lowStock.length === 0) {
-        feedContainer.innerHTML = `<p class="hub-empty-msg">Tu entorno está en orden. No hay alertas, compras urgentes ni tareas pendientes.</p>`;
+    if (agendaItems.length === 0 && posts.length === 0 && tasks.length === 0 && lowStock.length === 0) {
+        feedContainer.innerHTML = `<p class="hub-empty-msg">Tu entorno está en orden. No hay cuotas próximas, alertas, compras urgentes ni tareas pendientes.</p>`;
         return;
     }
 
-    // 1. Mostrar notas/alertas del tablero compartido
+    // 1. Mostrar próximos ítems de Agenda (Cuotas, Inversiones, Eventos y Tareas con prioridad)
+    agendaItems.forEach(item => {
+        const effPrio = getEffectivePriority(item);
+        const prioInfo = PRIORITY_META[effPrio] || PRIORITY_META.media;
+        const typeInfo = AGENDA_TYPE_META[item.item_type] || AGENDA_TYPE_META.tarea;
+        const days = diffDaysFromToday(item.due_date);
+        const dayText = days < 0 ? `Vencido (${Math.abs(days)}d)` : days === 0 ? 'Hoy' : days === 1 ? 'Mañana' : item.due_date;
+        const amountText = item.amount ? ` • ${formatCOP(item.amount)}` : '';
+        const isFinancial = ['cuota_deuda', 'aporte_inversion', 'pago_fijo'].includes(item.item_type);
+
+        const row = document.createElement('div');
+        row.className = 'setting-row hub-feed-item';
+        row.style.borderLeft = `4px solid ${prioInfo.color}`;
+        row.innerHTML = `
+            <div class="setting-info">
+                <h4 style="font-size: 0.78rem; color: ${prioInfo.color}; text-transform: uppercase;">
+                    ${typeInfo.icon} ${escapeHTML(typeInfo.label)} • ${escapeHTML(dayText)} • ${escapeHTML(prioInfo.label)}
+                </h4>
+                <p style="color: var(--text-main); font-size: 0.92rem; font-weight: 600;">
+                    ${escapeHTML(item.title)}${escapeHTML(amountText)}
+                </p>
+            </div>
+            <button type="button" class="btn-outline btn-complete-agenda" title="${isFinancial ? 'Registrar pago y completar' : 'Completar'}">
+                ${isFinancial ? 'Pagar ✓' : '✓'}
+            </button>
+        `;
+        row.querySelector('.btn-complete-agenda').addEventListener('click', async () => {
+            try {
+                await completeAgendaItem(item, { userId, authorName: currentAuthorName, registerFinance: true });
+                showToast(isFinancial ? 'Cuota liquidada y registrada en Finanzas.' : 'Ítem completado en Agenda.', 'success');
+                await loadHubTelemetry(userId);
+            } catch (err) {
+                showToast('Error al completar: ' + err.message, 'error');
+            }
+        });
+        feedContainer.appendChild(row);
+    });
+
+    // 2. Mostrar notas/alertas del tablero compartido (con título + contenido)
     posts.forEach(post => {
         const isAlert = post.category === 'alerta';
         const badgeColor = isAlert ? 'var(--danger-color, #ef4444)' : 'var(--primary-neon)';
+        const hasDistinctTitle = post.title && post.title.toLowerCase() !== String(post.category || '').toLowerCase();
+        const displayBody = hasDistinctTitle
+            ? `<strong>${escapeHTML(post.title)}</strong> — ${escapeHTML(post.content)}`
+            : escapeHTML(post.content);
+
         const row = document.createElement('div');
         row.className = 'setting-row hub-feed-item';
         row.innerHTML = `
             <div class="setting-info">
-                <h4 style="font-size: 0.82rem; color: ${badgeColor}; text-transform: uppercase;">${escapeHTML(post.category)}</h4>
-                <p style="color: var(--text-main); font-size: 0.92rem;">${escapeHTML(post.content)}</p>
+                <h4 style="font-size: 0.82rem; color: ${badgeColor}; text-transform: uppercase;">${escapeHTML(post.category || 'aviso')}</h4>
+                <p style="color: var(--text-main); font-size: 0.92rem;">${displayBody}</p>
             </div>
             <button type="button" class="btn-outline btn-delete-post" title="Descartar aviso">✓</button>
         `;
@@ -175,7 +249,7 @@ function renderConsolidatedFeed(posts, tasks, lowStock, userId) {
         feedContainer.appendChild(row);
     });
 
-    // 2. Mostrar tareas de mantenimiento de zonas pendientes
+    // 3. Mostrar tareas de mantenimiento de zonas pendientes
     tasks.slice(0, 4).forEach(task => {
         const row = document.createElement('div');
         row.className = 'setting-row hub-feed-item';
@@ -194,7 +268,7 @@ function renderConsolidatedFeed(posts, tasks, lowStock, userId) {
         feedContainer.appendChild(row);
     });
 
-    // 3. Mostrar alertas de stock bajo en Despensa Inteligente
+    // 4. Mostrar alertas de stock bajo en Despensa Inteligente
     lowStock.slice(0, 4).forEach(item => {
         const row = document.createElement('div');
         row.className = 'setting-row hub-feed-item';
@@ -229,7 +303,6 @@ function initClockAndWeather() {
     updateClock();
     clockInterval = setInterval(updateClock, 1000);
 
-    // Clima automático (Por defecto Floridablanca/Bucaramanga si no hay permiso de geolocalización)
     const fetchWeather = async (lat = 7.0622, lon = -73.0864) => {
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
@@ -364,7 +437,6 @@ function initAmbientSynthesizer() {
         }
     };
 
-    // Sincronizar UI por si el usuario dejó el audio encendido mientras navegaba
     syncAudioUI();
 
     btnToggle.addEventListener('click', () => {
@@ -391,49 +463,51 @@ function initAmbientSynthesizer() {
             if (gainNode) gainNode.gain.value = Number(e.target.value);
         });
     }
-    async function mountDesktopNativePanel() {
-        const wrapper = document.querySelector('.settings-wrapper');
-        if (!wrapper || document.getElementById('nexusDesktopNativeBox')) return;
+}
 
-        const info = await window.nexusDesktop.getSystemTelemetry();
-        const box = document.createElement('div');
-        box.id = 'nexusDesktopNativeBox';
-        box.style.cssText = 'margin-top: 2rem; background: var(--panel-bg); border: 1px solid var(--primary-neon); border-radius: 24px; padding: 1.8rem; box-shadow: var(--shadow-base);';
+// 5. PANEL NATIVO DE ESCRITORIO (ELECTRON) - CORREGIDO EN ALCANCE DE MÓDULO
+async function mountDesktopNativePanel() {
+    const wrapper = document.querySelector('.settings-wrapper');
+    if (!wrapper || document.getElementById('nexusDesktopNativeBox')) return;
 
-        box.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem;">
-                <div>
-                    <span class="version-badge" style="margin: 0 0 6px 0;"><span class="pulse-dot"></span> EJECUTABLE NATIVO NEXUS CORE ACTIVO</span>
-                    <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0;">Estación Local: ${escapeHTML(info.hostname)} (${escapeHTML(info.platform)})</h3>
-                </div>
-                <div style="font-size: 0.85rem; color: var(--primary-neon); font-weight: 700;">
-                    CPU: ${escapeHTML(info.cpuModel)} (${info.cpuCores} Hilos) • RAM OS: ${info.usedMemGB} / ${info.totalMemGB} GB (${info.memUsagePercent}%)
-                </div>
+    const info = await window.nexusDesktop.getSystemTelemetry();
+    const box = document.createElement('div');
+    box.id = 'nexusDesktopNativeBox';
+    box.style.cssText = 'margin-top: 2rem; background: var(--panel-bg); border: 1px solid var(--primary-neon); border-radius: 24px; padding: 1.8rem; box-shadow: var(--shadow-base);';
+
+    box.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.2rem;">
+            <div>
+                <span class="version-badge" style="margin: 0 0 6px 0;"><span class="pulse-dot"></span> EJECUTABLE NATIVO NEXUS CORE ACTIVO</span>
+                <h3 style="font-size: 1.2rem; font-weight: 800; margin: 0;">Estación Local: ${escapeHTML(info.hostname)} (${escapeHTML(info.platform)})</h3>
             </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="desktopVaultNote" class="form-input" placeholder="Texto o clave a sellar con AES-256-GCM en este equipo..." style="flex: 2; min-width: 220px;">
-                <input type="password" id="desktopVaultKey" class="form-input" placeholder="Llave maestra..." style="flex: 1; min-width: 150px;">
-                <button type="button" id="btnSealLocalVault" class="btn-save" style="margin: 0;">🔐 Sellar en Disco Local</button>
+            <div style="font-size: 0.85rem; color: var(--primary-neon); font-weight: 700;">
+                CPU: ${escapeHTML(info.cpuModel)} (${info.cpuCores} Hilos) • RAM OS: ${info.usedMemGB} / ${info.totalMemGB} GB (${info.memUsagePercent}%)
             </div>
-        `;
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="desktopVaultNote" class="form-input" placeholder="Texto o clave a sellar con AES-256-GCM en este equipo..." style="flex: 2; min-width: 220px;">
+            <input type="password" id="desktopVaultKey" class="form-input" placeholder="Llave maestra..." style="flex: 1; min-width: 150px;">
+            <button type="button" id="btnSealLocalVault" class="btn-save" style="margin: 0;">🔐 Sellar en Disco Local</button>
+        </div>
+    `;
 
-        wrapper.appendChild(box);
+    wrapper.appendChild(box);
 
-        box.querySelector('#btnSealLocalVault').addEventListener('click', async () => {
-            const text = box.querySelector('#desktopVaultNote').value.trim();
-            const pass = box.querySelector('#desktopVaultKey').value;
-            if (!text || !pass) {
-                showToast('Ingresa el texto y la llave maestra para cifrar.', 'error');
-                return;
-            }
-            const enc = new TextEncoder();
-            const iv = crypto.getRandomValues(new Uint8Array(12));
-            const keyMat = await crypto.subtle.importKey('raw', enc.encode(pass.padEnd(32, '0').slice(0, 32)), 'AES-GCM', false, ['encrypt']);
-            const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, keyMat, enc.encode(text));
-            const b64 = btoa(String.fromCharCode(...new Uint8Array(cipher)));
-            localStorage.setItem('ngn_desktop_vault_last', b64);
-            box.querySelector('#desktopVaultNote').value = '';
-            showToast('Bloque encriptado con AES-256-GCM guardado en la estación.', 'success');
-        });
-    }  
+    box.querySelector('#btnSealLocalVault').addEventListener('click', async () => {
+        const text = box.querySelector('#desktopVaultNote').value.trim();
+        const pass = box.querySelector('#desktopVaultKey').value;
+        if (!text || !pass) {
+            showToast('Ingresa el texto y la llave maestra para cifrar.', 'error');
+            return;
+        }
+        const enc = new TextEncoder();
+        const iv = crypto.getRandomValues(new Uint8Array(12));
+        const keyMat = await crypto.subtle.importKey('raw', enc.encode(pass.padEnd(32, '0').slice(0, 32)), 'AES-GCM', false, ['encrypt']);
+        const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, keyMat, enc.encode(text));
+        const b64 = btoa(String.fromCharCode(...new Uint8Array(cipher)));
+        localStorage.setItem('ngn_desktop_vault_last', b64);
+        box.querySelector('#desktopVaultNote').value = '';
+        showToast('Bloque encriptado con AES-256-GCM guardado en la estación.', 'success');
+    });
 }

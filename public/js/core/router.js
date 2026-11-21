@@ -9,6 +9,7 @@ import { initFamilyBoard } from '../controllers/family-board.controller.js';
 import { initFinance } from '../controllers/finance.controller.js';
 import { initInventory } from '../controllers/inventory.controller.js';
 import { initHabits } from '../controllers/habits.controller.js';
+import { initAgenda } from '../controllers/agenda.controller.js';
 import { showToast } from '../ui/toast.js';
 
 function initPublicContact() {
@@ -33,6 +34,7 @@ const viewControllers = {
     '/views/finance.html': initFinance,
     '/views/inventory.html': initInventory,
     '/views/habits.html': initHabits,
+    '/views/agenda.html': initAgenda,
     '/views/contacto.html': initPublicContact,
 };
 
@@ -45,7 +47,8 @@ const PRIVATE_VIEWS = [
     '/views/family-board.html',
     '/views/finance.html',
     '/views/inventory.html',
-    '/views/habits.html'
+    '/views/habits.html',
+    '/views/agenda.html'
 ];
 
 export async function navigateTo(targetPath, pushHistory = true) {
@@ -53,7 +56,6 @@ export async function navigateTo(targetPath, pushHistory = true) {
     const dynamicView = document.getElementById('dynamic-view');
     const mainHeader = document.getElementById('mainHeader');
 
-    // Si la ruta es la raíz "/", verificamos si hay sesión activa o mostramos Landing Page
     if (!targetPath || targetPath === '/') {
         if (dynamicView) {
             dynamicView.style.display = 'none';
@@ -70,7 +72,6 @@ export async function navigateTo(targetPath, pushHistory = true) {
         const cleanPath = targetPath.startsWith('/') ? targetPath : `/${targetPath}`;
         const isPrivate = PRIVATE_VIEWS.includes(cleanPath);
 
-        // Guardia de Seguridad: Verificar sesión antes de cargar una vista privada
         if (isPrivate) {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
@@ -80,8 +81,6 @@ export async function navigateTo(targetPath, pushHistory = true) {
             }
         }
 
-        // Cargar el HTML de la vista solicitada
-        // Soporte dual: Firebase Hosting (http/https) y Ejecutable Local (file://)
         const fetchUrl = window.location.protocol === 'file:' ? `.${cleanPath}` : cleanPath;
         const response = await fetch(fetchUrl);
         if (!response.ok) throw new Error(`Vista no encontrada: ${cleanPath}`);
@@ -90,27 +89,22 @@ export async function navigateTo(targetPath, pushHistory = true) {
         if (mainContent) mainContent.style.display = 'none';
         dynamicView.style.display = 'block';
 
-        // Ocultar header público en paneles privados y ajustar el padding superior
         if (mainHeader) {
             mainHeader.style.display = isPrivate ? 'none' : 'flex';
             dynamicView.style.paddingTop = isPrivate ? '0' : '80px';
         }
 
-        // Actualizar estado activo en los enlaces del menú público
         document.querySelectorAll('header nav a.encrypted-route').forEach(link => {
             link.classList.toggle('active', link.getAttribute('data-target') === cleanPath);
         });
 
-        // Actualizar la URL con Base64 si corresponde
-        // Actualizar la URL con Base64 si corresponde
         if (pushHistory && window.location.protocol !== 'file:') {
             const encoded = btoa(cleanPath);
             history.pushState({ path: cleanPath }, '', `?node=${encoded}`);
-        }   
+        }
 
         window.scrollTo(0, 0);
 
-        // Ejecutar el controlador asociado a la vista
         if (viewControllers[cleanPath]) {
             await viewControllers[cleanPath]();
         }
@@ -122,7 +116,6 @@ export async function navigateTo(targetPath, pushHistory = true) {
 }
 
 export function initRouter() {
-    // Delegación global de eventos para cualquier elemento con la clase .encrypted-route
     document.body.addEventListener('click', (e) => {
         const routeEl = e.target.closest('.encrypted-route');
         if (routeEl) {
@@ -132,7 +125,6 @@ export function initRouter() {
         }
     });
 
-    // Logo principal vuelve al inicio sin recargar la página
     const brandLogo = document.getElementById('brandLogo');
     if (brandLogo) {
         brandLogo.addEventListener('click', (e) => {
@@ -141,7 +133,6 @@ export function initRouter() {
         });
     }
 
-    // Soporte unificado para botones Atrás / Adelante del navegador y gestos móviles (Android)
     window.addEventListener('popstate', async (e) => {
         if (e.state && e.state.path) {
             await navigateTo(e.state.path, false);
@@ -157,7 +148,6 @@ export function initRouter() {
                 await navigateTo('/', false);
             }
         } else {
-            // Si regresa a la raíz pero tiene sesión activa, llevar al Dashboard
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
                 await navigateTo('/views/dashboard.html', false);
@@ -167,7 +157,6 @@ export function initRouter() {
         }
     });
 
-    // Carga inicial si la URL ya trae un parámetro ?node=...
     const params = new URLSearchParams(window.location.search);
     const initialNode = params.get('node');
     if (initialNode) {
@@ -177,7 +166,7 @@ export function initRouter() {
             navigateTo('/', false);
         }
     }
-// Soporte nativo para el botón físico "Atrás" en el APK de Android (Capacitor)
+
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.Capacitor.Plugins.App.addListener('backButton', async ({ canGoBack }) => {
             const dynamicView = document.getElementById('dynamic-view');
