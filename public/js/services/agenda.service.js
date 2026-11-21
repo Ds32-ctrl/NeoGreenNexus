@@ -335,7 +335,20 @@ export async function resyncCommitmentAgenda(commitment, opts = {}) {
  * Completa un ítem de agenda. Si corresponde a cuota_deuda, aporte_inversion o pago_fijo
  * con monto > 0, crea automáticamente el asiento en finance_transactions y actualiza el progreso.
  */
-export async function completeAgendaItem(item, { userId, authorName = 'Miembro', registerFinance = true } = {}) {
+/**
+ * Completa un ítem de agenda. Para ítems financieros permite especificar:
+ * - amount: monto real pagado (editable al confirmar)
+ * - transactionDate: fecha real del movimiento
+ * - sourceHouseholdId: null (Flujo Personal) o household.id (Hogar Familiar)
+ */
+export async function completeAgendaItem(item, {
+    userId,
+    authorName = 'Miembro',
+    registerFinance = true,
+    amount = null,
+    transactionDate = null,
+    sourceHouseholdId = undefined
+} = {}) {
     if (!item?.id) throw new Error('Ítem de agenda inválido.');
 
     if (item.status === 'completado') {
@@ -343,9 +356,12 @@ export async function completeAgendaItem(item, { userId, authorName = 'Miembro',
     }
 
     const isFinancialItem = ['cuota_deuda', 'aporte_inversion', 'pago_fijo'].includes(item.item_type);
+    const finalAmount = amount !== null ? Number(amount) : Number(item.amount || 0);
+    const finalDate = transactionDate || getTodayISO();
+    const targetHouseholdId = sourceHouseholdId !== undefined ? sourceHouseholdId : (item.household_id || null);
     let linkedTxId = item.linked_tx_id || null;
 
-    if (registerFinance && isFinancialItem && Number(item.amount || 0) > 0 && !linkedTxId) {
+    if (registerFinance && isFinancialItem && finalAmount > 0 && !linkedTxId) {
         const nature = item.item_type === 'cuota_deuda'
             ? 'deuda'
             : item.item_type === 'aporte_inversion'
@@ -362,15 +378,15 @@ export async function completeAgendaItem(item, { userId, authorName = 'Miembro',
             .from('finance_transactions')
             .insert({
                 user_id: userId,
-                household_id: item.household_id || null,
+                household_id: targetHouseholdId,
                 author_name: authorName,
                 title: item.title,
-                amount: Number(item.amount),
+                amount: finalAmount,
                 type: 'gasto',
                 nature,
                 category,
                 is_recurring: true,
-                transaction_date: getTodayISO(),
+                transaction_date: finalDate,
                 commitment_id: item.commitment_id || null
             })
             .select()
@@ -406,6 +422,7 @@ export async function completeAgendaItem(item, { userId, authorName = 'Miembro',
 
     return updateAgendaItem(item.id, {
         status: 'completado',
+        amount: finalAmount > 0 ? finalAmount : item.amount,
         completed_at: new Date().toISOString(),
         linked_tx_id: linkedTxId
     });

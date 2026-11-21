@@ -10,7 +10,8 @@ import {
     summarizeTransactions,
     getMonthlyCommitmentImpact,
     loadCommitments,
-    payNextCommitmentInstallment
+    payNextCommitmentInstallment,
+    deleteTransactionWithSync
 } from '../services/finance.service.js';
 import {
     loadAgendaItems,
@@ -464,11 +465,49 @@ function renderBoardGrid() {
 
 function renderFamilyFinanceFlow() {
     const contribContainer = document.getElementById('famMemberContributions');
+    const settlementBox = document.getElementById('famSettlementSummary');
+    const closeMonthBtn = document.getElementById('btnCloseMonthToReserve');
     const txListContainer = document.getElementById('famTransactionsList');
     if (!contribContainer || !txListContainer) return;
 
     const filtered = getFilteredTransactions();
+    const summary = summarizeTransactions(filtered);
 
+    // 1. Botón de Cierre Mensual (Enviar excedente libre a Fondo de Emergencia)
+    if (closeMonthBtn) {
+        if (summary.availableCash > 0) {
+            closeMonthBtn.style.display = 'inline-flex';
+            closeMonthBtn.textContent = `🏦 Cerrar Mes: Mover ${formatCOP(summary.availableCash)} a Reserva`;
+            closeMonthBtn.onclick = async () => {
+                closeMonthBtn.disabled = true;
+                try {
+                    const monthLabel = selectedMonth === 'all' ? 'Acumulado' : `Mes ${selectedMonth}`;
+                    const { error } = await supabase.from('finance_transactions').insert({
+                        user_id: currentUser.id,
+                        household_id: activeHousehold.id,
+                        author_name: currentAuthorName,
+                        title: `Cierre ${monthLabel} — Traslado a Fondo de Emergencia`,
+                        amount: summary.availableCash,
+                        type: 'gasto',
+                        nature: 'reserva',
+                        category: 'Ahorro',
+                        is_recurring: false,
+                        transaction_date: getTodayISO()
+                    });
+                    if (error) throw error;
+                    showToast(`Excedente de ${formatCOP(summary.availableCash)} trasladado al Fondo de Emergencia (Base Cero).`, 'success');
+                    await loadAllFamilyData();
+                } catch (err) {
+                    showToast('Error al cerrar mes: ' + err.message, 'error');
+                    closeMonthBtn.disabled = false;
+                }
+            };
+        } else {
+            closeMonthBtn.style.display = 'none';
+        }
+    }
+
+    // 2. Libro Auxiliar de Participación + Liquidación Equitativa
     const memberTotals = {};
     let totalContributed = 0;
 
@@ -491,13 +530,14 @@ function renderFamilyFinanceFlow() {
 
     const authors = Object.keys(memberTotals);
     if (authors.length === 0) {
-        contribContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra los aportes o gastos para ver el Libro Auxiliar de Participación.</p>`;
+        contribContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Registra los aportes o gastos para ver el Libro Auxiliar y la liquidación equitativa.</p>`;
+        if (settlementBox) settlementBox.style.display = 'none';
     } else {
         contribContainer.innerHTML = authors.map(name => {
             const info = memberTotals[name];
             const pct = totalContributed > 0
                 ? Math.round((info.aportes / totalContributed) * 100)
-                : 50;
+                : Math.round(100 / authors.length);
             return `
                 <div>
                     <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 4px; flex-wrap: wrap; gap: 4px;">
@@ -514,8 +554,33 @@ function renderFamilyFinanceFlow() {
                 </div>
             `;
         }).join('');
+
+        // Cálculo de balance equitativo entre participantes activos del periodo
+        if (settlementBox && authors.length >= 2 && totalContributed > 0) {
+            const equalShare = totalContributed / authors.length;
+            const diffs = authors.map(name => ({
+                name,
+                diff: Math.round(memberTotals[name].aportes - equalShare)
+            }));
+            const maxDiff = Math.max(...diffs.map(d => Math.abs(d.diff)));
+
+            settlementBox.style.display = 'block';
+            if (maxDiff < 100) {
+                settlementBox.innerHTML = `⚖️ <strong style="color: #10b981;">Aportes equilibrados al día</strong> — Cada participante activo aportó ${formatCOP(equalShare)} (Base equitativa ${Math.round(100 / authors.length)}%).`;
+            } else {
+                const lines = diffs.map(d => {
+                    if (d.diff > 0) return `<strong>${escapeHTML(d.name)}</strong> lleva <span style="color:#10b981; font-weight:700;">+${formatCOP(d.diff)}</span> a favor`;
+                    if (d.diff < 0) return `<strong>${escapeHTML(d.name)}</strong> tiene <span style="color:#f59e0b; font-weight:700;">${formatCOP(Math.abs(d.diff))}</span> por nivelar al fondo`;
+                    return `<strong>${escapeHTML(d.name)}</strong> está al día`;
+                });
+                settlementBox.innerHTML = `⚖️ <strong>Balance Equitativo (${formatCOP(equalShare)} c/u):</strong> ${lines.join(' • ')}.`;
+            }
+        } else if (settlementBox) {
+            settlementBox.style.display = 'none';
+        }
     }
 
+    // 3. Renderizar Libro Mayor Familiar
     txListContainer.innerHTML = '';
     if (filtered.length === 0) {
         txListContainer.innerHTML = `<p style="color: var(--text-muted); font-size: 0.88rem; text-align: center; padding: 1.5rem 0;">No hay movimientos familiares en este mes.</p>`;
@@ -554,9 +619,13 @@ function renderFamilyFinanceFlow() {
         `;
 
         row.querySelector('.btn-del-fam-tx').addEventListener('click', async () => {
-            await supabase.from('finance_transactions').delete().eq('id', tx.id);
-            await loadAllFamilyData();
-            showToast('Movimiento eliminado del flujo familiar', 'info');
+            try {
+                await deleteTransactionWithSync(tx);
+                await loadAllFamilyData();
+                showToast(tx.commitment_id ? 'Movimiento eliminado y cuota revertida.' : 'Movimiento eliminado del flujo familiar', 'info');
+            } catch (err) {
+                showToast('Error al eliminar: ' + err.message, 'error');
+            }
         });
 
         txListContainer.appendChild(row);

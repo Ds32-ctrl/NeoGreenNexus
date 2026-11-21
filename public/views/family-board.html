@@ -308,12 +308,18 @@
         <!-- Panel Derecho: Aportes por Miembro + Compromisos + Libro Mayor Familiar -->
         <div class="settings-content" style="padding: 2rem; display: flex; flex-direction: column; gap: 1.8rem;">
           
-          <!-- Resumen de Participación por Miembro -->
+          <!-- Resumen de Participación por Miembro + Liquidación 50/50 + Cierre Mensual -->
           <div style="background: var(--bg-color); border: 1px solid var(--border-card); border-radius: 18px; padding: 1.4rem;">
-            <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.9rem;">Participación y Pagos por Miembro (Periodo Seleccionado)</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 0.9rem;">
+              <h3 style="font-size: 1rem; font-weight: 700; margin: 0;">Participación y Liquidación por Miembro</h3>
+              <button type="button" id="btnCloseMonthToReserve" class="btn-outline" style="display: none; padding: 0.38rem 0.8rem; font-size: 0.76rem; border-color: #0ea5e9; color: #0ea5e9; font-weight: 700;">
+                🏦 Cerrar Mes: Enviar Excedente a Reserva
+              </button>
+            </div>
             <div id="famMemberContributions" style="display: flex; flex-direction: column; gap: 0.7rem;">
               <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Sin movimientos familiares registrados en este mes.</p>
             </div>
+            <div id="famSettlementSummary" style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-card); font-size: 0.82rem; color: var(--text-muted); display: none;"></div>
           </div>
 
           <!-- Deudas e Inversiones Compartidas del Hogar -->

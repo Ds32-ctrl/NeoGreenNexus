@@ -17,6 +17,12 @@ import {
     deleteAgendaItem,
     completeAgendaItem
 } from '../services/agenda.service.js';
+import {
+    isNotificationsEnabled,
+    setNotificationsEnabled,
+    requestNotificationPermission,
+    syncAgendaReminders
+} from '../services/notifications.service.js';
 
 let currentUser = null;
 let currentAuthorName = 'Miembro';
@@ -105,6 +111,7 @@ async function refreshAgendaData() {
         });
         updateAgendaKPIs();
         renderCurrentView();
+        syncAgendaReminders(allItems).catch(() => {});
     } catch (err) {
         console.error('Error cargando agenda:', err);
         showToast('Error al sincronizar agenda: ' + (err.message || ''), 'error');
@@ -428,7 +435,9 @@ function buildAgendaRow(item) {
     const prioInfo = PRIORITY_META[effPrio] || PRIORITY_META.media;
     const typeInfo = AGENDA_TYPE_META[item.item_type] || AGENDA_TYPE_META.tarea;
     const isFinancial = ['cuota_deuda', 'aporte_inversion', 'pago_fijo'].includes(item.item_type);
+    const needsPayConfirm = !isDone && isFinancial && Number(item.amount || 0) > 0 && !item.linked_tx_id;
     const days = diffDaysFromToday(item.due_date);
+    const defaultSource = item.household_id ? 'household' : 'personal';
 
     const dateLabel = days < 0 && !isDone
         ? `Vencido hace ${Math.abs(days)}d (${item.due_date})`
@@ -462,7 +471,7 @@ function buildAgendaRow(item) {
 
     const completeBtnText = isDone
         ? '↺ Reabrir'
-        : (isFinancial && Number(item.amount || 0) > 0)
+        : needsPayConfirm
             ? (item.item_type === 'aporte_inversion' ? '📈 Invertir ✓' : '💳 Pagar ✓')
             : '✓ Listo';
 
@@ -496,6 +505,27 @@ function buildAgendaRow(item) {
             <button type="button" class="btn-outline btn-ag-delete" title="Eliminar" style="padding: 0.42rem 0.65rem; font-size: 0.78rem; border-color: transparent; color: var(--text-muted);">✕</button>
         </div>
 
+        ${needsPayConfirm ? `
+        <div class="ag-pay-panel" style="display: none; width: 100%; padding-top: 0.7rem; border-top: 1px dashed var(--primary-neon); align-items: flex-end; gap: 8px; flex-wrap: wrap;">
+            <div>
+                <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Monto real ($)</label>
+                <input type="number" class="form-input ag-pay-amount" value="${Number(item.amount)}" min="1" step="0.01" style="width: 120px; padding: 0.38rem 0.55rem; font-size: 0.82rem; font-weight: 700;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Fecha de pago</label>
+                <input type="date" class="form-input ag-pay-date" value="${getTodayISO()}" style="width: auto; padding: 0.38rem 0.5rem; font-size: 0.78rem;">
+            </div>
+            <div>
+                <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">¿De dónde sale?</label>
+                <select class="form-input ag-pay-source" style="width: auto; padding: 0.38rem 0.55rem; font-size: 0.78rem; cursor: pointer;">
+                    <option value="personal" ${defaultSource === 'personal' ? 'selected' : ''}>👤 Flujo Personal</option>
+                    ${activeHousehold ? `<option value="household" ${defaultSource === 'household' ? 'selected' : ''}>🏠 Hogar (${escapeHTML(activeHousehold.name)})</option>` : ''}
+                </select>
+            </div>
+            <button type="button" class="btn-save btn-ag-confirm-pay" style="margin: 0; padding: 0.42rem 0.85rem; font-size: 0.76rem;">Confirmar ✓</button>
+            <button type="button" class="btn-outline btn-ag-cancel-pay" style="padding: 0.4rem 0.7rem; font-size: 0.76rem;">Cancelar</button>
+        </div>` : ''}
+
         <div class="ag-reschedule-panel" style="display: none; width: 100%; padding-top: 0.65rem; border-top: 1px dashed var(--border-card); align-items: center; gap: 8px; flex-wrap: wrap;">
             <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 600;">Nueva fecha:</span>
             <input type="date" class="form-input ag-new-date-input" value="${escapeHTML(String(item.due_date || '').slice(0, 10))}" style="width: auto; padding: 0.35rem 0.6rem; font-size: 0.8rem;">
@@ -505,8 +535,17 @@ function buildAgendaRow(item) {
         </div>
     `;
 
-    // Acción 1: Completar / Pagar Cuota en 1 clic
+    const payPanel = row.querySelector('.ag-pay-panel');
+    const resPanel = row.querySelector('.ag-reschedule-panel');
+
+    // Acción 1: Completar o abrir panel de origen/monto
     row.querySelector('.btn-ag-complete').addEventListener('click', async (e) => {
+        if (needsPayConfirm && payPanel) {
+            if (resPanel) resPanel.style.display = 'none';
+            payPanel.style.display = payPanel.style.display === 'none' ? 'flex' : 'none';
+            return;
+        }
+
         const btn = e.currentTarget;
         btn.disabled = true;
         try {
@@ -515,13 +554,7 @@ function buildAgendaRow(item) {
                 authorName: currentAuthorName,
                 registerFinance: true
             });
-            if (isDone) {
-                showToast('Registro reabierto como pendiente.', 'info');
-            } else if (isFinancial && Number(item.amount || 0) > 0 && !item.linked_tx_id) {
-                showToast('¡Completado y asentado automáticamente en Finanzas!', 'success');
-            } else {
-                showToast('Actividad marcada como completada.', 'success');
-            }
+            showToast(isDone ? 'Registro reabierto como pendiente.' : 'Actividad marcada como completada.', isDone ? 'info' : 'success');
             await refreshAgendaData();
         } catch (err) {
             showToast('Error al actualizar: ' + err.message, 'error');
@@ -529,11 +562,50 @@ function buildAgendaRow(item) {
         }
     });
 
+    // Confirmar Pago con Origen y Monto Real
+    if (payPanel) {
+        row.querySelector('.btn-ag-cancel-pay').addEventListener('click', () => {
+            payPanel.style.display = 'none';
+        });
+        row.querySelector('.btn-ag-confirm-pay').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const realAmt = Number(row.querySelector('.ag-pay-amount').value);
+                const realDate = row.querySelector('.ag-pay-date').value;
+                const srcVal = row.querySelector('.ag-pay-source').value;
+                const sourceHouseholdId = (srcVal === 'household' && activeHousehold) ? activeHousehold.id : null;
+
+                if (!realAmt || realAmt <= 0) {
+                    showToast('Ingresa un monto válido mayor a 0.', 'info');
+                    btn.disabled = false;
+                    return;
+                }
+
+                await completeAgendaItem(item, {
+                    userId: currentUser.id,
+                    authorName: currentAuthorName,
+                    registerFinance: true,
+                    amount: realAmt,
+                    transactionDate: realDate,
+                    sourceHouseholdId
+                });
+
+                const srcLabel = sourceHouseholdId ? 'Hogar Familiar' : 'Flujo Personal';
+                showToast(`Pagado (${formatCOP(realAmt)}) desde ${srcLabel} y asentado en Finanzas.`, 'success');
+                await refreshAgendaData();
+            } catch (err) {
+                showToast('Error al registrar pago: ' + err.message, 'error');
+                btn.disabled = false;
+            }
+        });
+    }
+
     // Acción 2: Panel inline de Reprogramación
-    const resPanel = row.querySelector('.ag-reschedule-panel');
     const resBtn = row.querySelector('.btn-ag-reschedule');
     if (resBtn && resPanel) {
         resBtn.addEventListener('click', () => {
+            if (payPanel) payPanel.style.display = 'none';
             resPanel.style.display = resPanel.style.display === 'none' ? 'flex' : 'none';
         });
 

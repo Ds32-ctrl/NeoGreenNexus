@@ -1,7 +1,7 @@
 <!-- public/views/zones.html -->
 <div class="settings-wrapper">
   <!-- Cabecera del Módulo -->
-  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap;">
+  <div class="settings-header" style="justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
     <div style="display: flex; align-items: center; gap: 1.2rem;">
       <button type="button" class="btn-back encrypted-route" data-target="/views/dashboard.html" aria-label="Volver al Panel">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -11,17 +11,23 @@
       </button>
       <div>
         <h1 class="settings-title" style="margin: 0;">Zonas del Hogar</h1>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Gestión de espacios, mantenimiento preventivo y tareas por habitación</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">Gestión de espacios, mantenimiento preventivo sincronizado con el Hogar y la Agenda</p>
       </div>
     </div>
 
-    <!-- Indicador Global de Salud del Hogar -->
-    <div style="display: flex; align-items: center; gap: 1.2rem; background: var(--panel-bg); padding: 0.7rem 1.4rem; border-radius: 16px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
-      <div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Estado de Mantenimiento</div>
-        <div style="display: flex; align-items: baseline; gap: 8px;">
-          <span id="zonesHealthPercent" style="font-size: 1.4rem; font-weight: 800; color: var(--primary-neon);">100%</span>
-          <span id="zonesStatsSummary" style="font-size: 0.8rem; color: var(--text-muted);">0 de 0 completadas</span>
+    <!-- Indicador Global de Salud del Hogar + Acceso a Agenda -->
+    <div style="display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;">
+      <button type="button" class="btn-outline encrypted-route" data-target="/views/agenda.html" style="padding: 0.6rem 1rem; background: var(--panel-bg); font-size: 0.82rem; font-weight: 700;">
+        📅 Ver Agenda
+      </button>
+
+      <div style="display: flex; align-items: center; gap: 1.2rem; background: var(--panel-bg); padding: 0.7rem 1.4rem; border-radius: 16px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base);">
+        <div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Estado de Mantenimiento</div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <span id="zonesHealthPercent" style="font-size: 1.4rem; font-weight: 800; color: var(--primary-neon);">100%</span>
+            <span id="zonesStatsSummary" style="font-size: 0.8rem; color: var(--text-muted);">0 de 0 completadas</span>
+          </div>
         </div>
       </div>
     </div>
@@ -31,7 +37,7 @@
   <div class="settings-container" style="grid-template-columns: 320px 1fr;">
     
     <!-- COLUMNA IZQUIERDA: LISTA DE ZONAS Y CREACIÓN -->
-    <div class="settings-sidebar" style="display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="settings-sidebar" style="display: flex; flex-direction: column; justify-content: space-between; gap: 1.4rem;">
       <div>
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
           <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Espacios Registrados</span>
@@ -39,7 +45,7 @@
         </div>
 
         <!-- Lista Dinámica de Zonas -->
-        <div id="zonesListContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 2rem; max-height: 340px; overflow-y: auto;">
+        <div id="zonesListContainer" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; max-height: 340px; overflow-y: auto;">
           <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center; padding: 1rem 0;">Cargando espacios...</p>
         </div>
       </div>
@@ -51,6 +57,11 @@
         <input type="text" id="zoneNameInput" class="form-input" placeholder="Ej. Habitación Principal, Garaje..." required style="padding: 0.65rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.88rem;">
         
         <input type="text" id="zoneDescInput" class="form-input" placeholder="Descripción o herramientas clave..." style="padding: 0.65rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.85rem;">
+
+        <label id="zoneShareHouseholdLabel" style="display: none; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--primary-neon); font-weight: 600; cursor: pointer; margin-bottom: 0.75rem;">
+          <input type="checkbox" id="zoneShareHouseholdCheck" checked style="width: 15px; height: 15px; accent-color: var(--primary-neon);">
+          🏠 Compartir espacio con el Hogar
+        </label>
         
         <div style="display: flex; gap: 8px; align-items: center;">
           <select id="zoneIconSelect" class="form-input" style="padding: 0.6rem; font-size: 0.85rem; cursor: pointer;">
@@ -70,43 +81,66 @@
     </div>
 
     <!-- COLUMNA DERECHA: DETALLE DE LA ZONA ACTIVA Y SUS TAREAS -->
-    <div class="settings-content" style="padding: 2.5rem;">
+    <div class="settings-content" style="padding: 2.2rem;">
       
       <!-- Cabecera de la Zona Seleccionada -->
-      <div id="activeZoneHeader" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-bottom: 1.5rem; margin-bottom: 1.8rem; border-bottom: 1px solid var(--border-card); flex-wrap: wrap;">
+      <div id="activeZoneHeader" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-bottom: 1.4rem; margin-bottom: 1.6rem; border-bottom: 1px solid var(--border-card); flex-wrap: wrap;">
         <div>
-          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.3rem;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.3rem; flex-wrap: wrap;">
             <span id="activeZoneIcon" style="font-size: 1.5rem;">🏠</span>
             <h2 id="activeZoneTitle" class="pane-title" style="margin: 0;">Selecciona un espacio</h2>
+            <span id="activeZoneScopeBadge" style="display: none; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 8px; background: rgba(16,185,129,0.14); color: var(--primary-neon);">🏠 Hogar</span>
           </div>
           <p id="activeZoneDesc" class="pane-subtitle" style="margin: 0;">Elige una zona en el panel izquierdo o crea una nueva para gestionar sus tareas.</p>
         </div>
 
-        <button type="button" id="btnDeleteZone" class="btn-logout" style="display: none; padding: 6px 12px; font-size: 0.8rem;">
-          Eliminar Zona
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button type="button" id="btnToggleZoneShare" class="btn-outline" style="display: none; padding: 6px 11px; font-size: 0.78rem;">
+            🏠 Compartir con Hogar
+          </button>
+          <button type="button" id="btnDeleteZone" class="btn-logout" style="display: none; padding: 6px 12px; font-size: 0.8rem;">
+            Eliminar Zona
+          </button>
+        </div>
       </div>
 
       <!-- Formulario de Nueva Tarea / Mantenimiento para esta Zona -->
-      <form id="createTaskForm" style="display: none; gap: 10px; margin-bottom: 1.8rem; flex-wrap: wrap; background: var(--bg-color); padding: 1rem; border-radius: 14px; border: 1px solid var(--border-card);">
-        <input type="text" id="taskTitleInput" class="form-input" placeholder="Nueva tarea o equipo a mantener (ej. Limpiar filtro aire acondicionado)..." required style="flex: 2; min-width: 200px; background: var(--panel-bg); padding: 0.7rem 1rem;">
-        
-        <select id="taskFreqSelect" class="form-input" style="flex: 1; min-width: 130px; background: var(--panel-bg); padding: 0.7rem; cursor: pointer;">
-          <option value="Diario">Diario</option>
-          <option value="Semanal" selected>Semanal</option>
-          <option value="Mensual">Mensual</option>
-          <option value="Trimestral">Trimestral</option>
-        </select>
+      <form id="createTaskForm" style="display: none; flex-direction: column; gap: 10px; margin-bottom: 1.6rem; background: var(--bg-color); padding: 1rem; border-radius: 14px; border: 1px solid var(--border-card);">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="text" id="taskTitleInput" class="form-input" placeholder="Nueva tarea o equipo a mantener (ej. Limpiar filtro aire acondicionado)..." required style="flex: 2; min-width: 210px; background: var(--panel-bg); padding: 0.65rem 0.9rem;">
+          
+          <select id="taskFreqSelect" class="form-input" style="flex: 1; min-width: 120px; background: var(--panel-bg); padding: 0.65rem; cursor: pointer;">
+            <option value="Diario">Diario</option>
+            <option value="Semanal" selected>Semanal</option>
+            <option value="Quincenal">Quincenal</option>
+            <option value="Mensual">Mensual</option>
+            <option value="Trimestral">Trimestral</option>
+          </select>
 
-        <input type="date" id="taskDueDateInput" class="form-input" style="flex: 1; min-width: 140px; background: var(--panel-bg); padding: 0.7rem;" title="Fecha programada (opcional)">
+          <select id="taskPrioritySelect" class="form-input" style="flex: 0.9; min-width: 115px; background: var(--panel-bg); padding: 0.65rem; cursor: pointer;" title="Prioridad en Agenda">
+            <option value="critica">🔴 Crítica</option>
+            <option value="alta">🟠 Alta</option>
+            <option value="media" selected>🔵 Media</option>
+            <option value="baja">🟢 Baja</option>
+          </select>
 
-        <button type="submit" class="btn-save" style="margin: 0; padding: 0.7rem 1.4rem;">
-          + Asignar
-        </button>
+          <input type="date" id="taskDueDateInput" class="form-input" style="flex: 1; min-width: 135px; background: var(--panel-bg); padding: 0.65rem;" title="Fecha programada (opcional)">
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-main); font-weight: 600; cursor: pointer;">
+            <input type="checkbox" id="taskSyncAgendaCheck" checked style="width: 15px; height: 15px; accent-color: var(--primary-neon);">
+            📅 Enviar automáticamente al Centro de Agendas
+          </label>
+
+          <button type="submit" class="btn-save" style="margin: 0; padding: 0.62rem 1.3rem; font-size: 0.84rem;">
+            + Asignar Mantenimiento
+          </button>
+        </div>
       </form>
 
       <!-- Filtros Rápidos de Tareas -->
-      <div id="taskFilterBar" style="display: none; gap: 8px; margin-bottom: 1.2rem;">
+      <div id="taskFilterBar" style="display: none; gap: 8px; margin-bottom: 1.2rem; flex-wrap: wrap;">
         <button type="button" class="btn-outline task-filter-btn active" data-filter="all" style="border-color: var(--primary-neon); color: var(--primary-neon);">Todas</button>
         <button type="button" class="btn-outline task-filter-btn" data-filter="pending">Pendientes</button>
         <button type="button" class="btn-outline task-filter-btn" data-filter="completed">Completadas</button>

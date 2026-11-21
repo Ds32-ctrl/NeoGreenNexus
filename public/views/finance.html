@@ -280,19 +280,20 @@
             </div>
           </div>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 6px; margin-bottom: 0.75rem;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.65rem;">
             <div>
-              <label for="commTotalInstallments" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Total Cuotas</label>
-              <input type="number" id="commTotalInstallments" class="form-input" placeholder="Vacío = ∞" min="1" max="120" style="padding: 0.55rem 0.6rem; font-size: 0.83rem;">
+              <label for="commTotalInstallments" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Total Cuotas (vacío = ∞)</label>
+              <input type="number" id="commTotalInstallments" class="form-input" placeholder="Ej. 10" min="1" max="120" style="padding: 0.55rem 0.7rem; font-size: 0.84rem;">
             </div>
             <div>
-              <label for="commPaidInstallments" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Ya Pagadas</label>
-              <input type="number" id="commPaidInstallments" class="form-input" value="0" min="0" style="padding: 0.55rem 0.6rem; font-size: 0.83rem;">
+              <label for="commPaidInstallments" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Ya Pagadas</label>
+              <input type="number" id="commPaidInstallments" class="form-input" value="0" min="0" style="padding: 0.55rem 0.7rem; font-size: 0.84rem;">
             </div>
-            <div>
-              <label for="commStartDate" style="display: block; font-size: 0.74rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Desde Fecha</label>
-              <input type="date" id="commStartDate" class="form-input" required style="padding: 0.55rem 0.45rem; font-size: 0.78rem;">
-            </div>
+          </div>
+
+          <div style="margin-bottom: 0.75rem;">
+            <label for="commStartDate" style="display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); margin-bottom: 3px;">Fecha de Inicio / Próximo Corte</label>
+            <input type="date" id="commStartDate" class="form-input" required style="padding: 0.55rem 0.7rem; font-size: 0.84rem;">
           </div>
 
           <!-- Vista previa en vivo del calendario de cuotas -->

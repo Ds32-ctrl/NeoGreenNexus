@@ -3,7 +3,6 @@ import { supabase } from '../config/supabase.js';
 import {
     generateCommitmentAgenda,
     resyncCommitmentAgenda,
-    completeAgendaItem,
     normalizeBillingDays,
     getTodayISO
 } from './agenda.service.js';
@@ -113,9 +112,6 @@ export function summarizeTransactions(transactions = []) {
     };
 }
 
-/**
- * Calcula el impacto mensual estimado de una deuda/inversión según su frecuencia.
- */
 export function getMonthlyCommitmentImpact(c) {
     const quota = Number(c.monthly_amount || 0);
     const freq = c.frequency || 'mensual';
@@ -148,9 +144,29 @@ export async function loadCommitments({ userId, householdId = null, scope = 'per
 }
 
 /**
- * Crea una Deuda o Inversión con periodicidad flexible (mensual, quincenal, días específicos o cada N días)
- * y traza automáticamente sus cuotas en agenda_items si traceInAgenda es true.
+ * Carga TODOS los pagos reales asociados a una lista de compromisos
+ * (tanto si salieron del flujo Personal como del Hogar Familiar).
  */
+export async function loadCommitmentTransactions(commitmentIds = []) {
+    if (!commitmentIds || commitmentIds.length === 0) return {};
+
+    const { data, error } = await supabase
+        .from('finance_transactions')
+        .select('*')
+        .in('commitment_id', commitmentIds)
+        .order('transaction_date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    const grouped = {};
+    (data || []).forEach(tx => {
+        if (!grouped[tx.commitment_id]) grouped[tx.commitment_id] = [];
+        grouped[tx.commitment_id].push(tx);
+    });
+    return grouped;
+}
+
 export async function createCommitmentWithAgenda({
     userId,
     householdId = null,
@@ -229,10 +245,6 @@ export async function createCommitmentWithAgenda({
     return { commitment, agendaRows };
 }
 
-/**
- * Permite ajustar monto, frecuencia, días de pago, cuotas totales o fecha de inicio
- * de una deuda/inversión y re-sincronizar sus cuotas pendientes en la Agenda.
- */
 export async function updateCommitmentAndResyncAgenda(commitmentId, updates, {
     userId,
     authorName = 'Miembro',
@@ -260,6 +272,10 @@ export async function updateCommitmentAndResyncAgenda(commitmentId, updates, {
         updated_at: new Date().toISOString()
     };
 
+    if (updates.principalAmount !== undefined) {
+        payload.principal_amount = Math.max(0, Number(updates.principalAmount || 0));
+    }
+
     const { data: updated, error } = await supabase
         .from('financial_commitments')
         .update(payload)
@@ -284,58 +300,247 @@ export async function updateCommitmentAndResyncAgenda(commitmentId, updates, {
 }
 
 /**
- * Liquida la siguiente cuota pendiente de una deuda/inversión en 1 clic:
- * - Si existe en agenda_items, la liquida mediante completeAgendaItem (cero duplicados).
- * - Si no estaba trazada en agenda, asienta directo en finance_transactions y avanza paid_installments.
+ * Registra un pago o abono real a una deuda/inversión eligiendo:
+ * - amount: monto real abonado (puede diferir de la cuota base)
+ * - transactionDate: fecha real del pago (permite cargar historial pasado)
+ * - sourceHouseholdId: null (Flujo Personal) o household.id (Hogar Familiar)
+ * - isExtraCapital: si es true, suma al capital amortizado sin consumir la próxima cuota de Agenda
  */
-export async function payNextCommitmentInstallment(commitment, { userId, authorName = 'Miembro' } = {}) {
-    const { data: pendingRows, error: findErr } = await supabase
-        .from('agenda_items')
-        .select('*')
-        .eq('commitment_id', commitment.id)
-        .neq('status', 'completado')
-        .order('due_date', { ascending: true })
-        .limit(1);
+export async function payCommitmentInstallment(commitment, {
+    userId,
+    authorName = 'Miembro',
+    amount = null,
+    transactionDate = getTodayISO(),
+    sourceHouseholdId = null,
+    isExtraCapital = false
+} = {}) {
+    const payAmt = Number(amount ?? commitment.monthly_amount);
+    if (!payAmt || payAmt <= 0) throw new Error('Ingresa un monto de abono válido mayor a 0.');
 
-    if (findErr) throw findErr;
+    const isDebt = commitment.kind === 'deuda';
+    let targetAgendaItem = null;
 
-    if (pendingRows && pendingRows.length > 0) {
-        return completeAgendaItem(pendingRows[0], { userId, authorName, registerFinance: true });
+    if (!isExtraCapital) {
+        const { data: pendingRows, error: findErr } = await supabase
+            .from('agenda_items')
+            .select('*')
+            .eq('commitment_id', commitment.id)
+            .neq('status', 'completado')
+            .order('due_date', { ascending: true })
+            .limit(1);
+
+        if (findErr) throw findErr;
+        if (pendingRows && pendingRows.length > 0) {
+            targetAgendaItem = pendingRows[0];
+        }
     }
 
     const nextNum = Number(commitment.paid_installments || 0) + 1;
-    const isDebt = commitment.kind === 'deuda';
-    const quotaTag = commitment.total_installments ? `Cuota ${nextNum}/${commitment.total_installments}` : `Aporte #${nextNum}`;
+    const quotaTag = isExtraCapital
+        ? 'Abono Extra a Capital'
+        : (commitment.total_installments ? `Cuota ${nextNum}/${commitment.total_installments}` : `Aporte #${nextNum}`);
 
-    const { error: txErr } = await supabase.from('finance_transactions').insert({
-        user_id: userId,
-        household_id: commitment.household_id || null,
-        author_name: authorName,
-        title: `${commitment.title} (${quotaTag})`,
-        amount: Number(commitment.monthly_amount),
-        type: 'gasto',
-        nature: isDebt ? 'deuda' : 'inversion',
-        category: isDebt ? 'Deudas' : 'Inversión',
-        is_recurring: true,
-        transaction_date: getTodayISO(),
-        commitment_id: commitment.id
-    });
+    const txTitle = targetAgendaItem ? targetAgendaItem.title : `${commitment.title} (${quotaTag})`;
+
+    const { data: tx, error: txErr } = await supabase
+        .from('finance_transactions')
+        .insert({
+            user_id: userId,
+            household_id: sourceHouseholdId,
+            author_name: authorName,
+            title: txTitle,
+            amount: payAmt,
+            type: 'gasto',
+            nature: isDebt ? 'deuda' : 'inversion',
+            category: isDebt ? 'Deudas' : 'Inversión',
+            is_recurring: !isExtraCapital,
+            transaction_date: transactionDate || getTodayISO(),
+            commitment_id: commitment.id
+        })
+        .select()
+        .single();
+
     if (txErr) throw txErr;
 
-    const nextStatus = (commitment.total_installments && nextNum >= Number(commitment.total_installments))
-        ? 'pagado'
-        : 'activo';
+    if (targetAgendaItem) {
+        await supabase
+            .from('agenda_items')
+            .update({
+                status: 'completado',
+                amount: payAmt,
+                completed_at: new Date().toISOString(),
+                linked_tx_id: tx.id,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', targetAgendaItem.id);
+    }
 
-    const { error: upErr } = await supabase
+    // Evaluar nuevo progreso y verificar si se saldó el capital completo
+    const nextPaid = isExtraCapital ? Number(commitment.paid_installments || 0) : nextNum;
+    const historyMap = await loadCommitmentTransactions([commitment.id]);
+    const realPaidSum = (historyMap[commitment.id] || []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+
+    const paidByCount = Boolean(commitment.total_installments && nextPaid >= Number(commitment.total_installments));
+    const paidByCapital = Boolean(isDebt && Number(commitment.principal_amount || 0) > 0 && realPaidSum >= Number(commitment.principal_amount));
+    const nextStatus = (paidByCount || paidByCapital) ? 'pagado' : 'activo';
+
+    await supabase
         .from('financial_commitments')
         .update({
-            paid_installments: nextNum,
+            paid_installments: nextPaid,
             status: nextStatus,
             updated_at: new Date().toISOString()
         })
         .eq('id', commitment.id);
 
+    return tx;
+}
+
+// Alias retrocompatible para llamadas simples
+export async function payNextCommitmentInstallment(commitment, opts = {}) {
+    return payCommitmentInstallment(commitment, {
+        ...opts,
+        sourceHouseholdId: opts.sourceHouseholdId !== undefined ? opts.sourceHouseholdId : (commitment.household_id || null)
+    });
+}
+
+/**
+ * Edita el monto, fecha u origen (Personal / Hogar) de un abono ya registrado
+ * y actualiza la agenda y estado del compromiso asociado.
+ */
+export async function updateCommitmentPayment(tx, { amount, transactionDate, sourceHouseholdId }) {
+    const cleanAmt = Number(amount);
+    if (!cleanAmt || cleanAmt <= 0) throw new Error('El monto debe ser mayor a 0.');
+
+    const { data: updatedTx, error } = await supabase
+        .from('finance_transactions')
+        .update({
+            amount: cleanAmt,
+            transaction_date: transactionDate || tx.transaction_date || getTodayISO(),
+            household_id: sourceHouseholdId
+        })
+        .eq('id', tx.id)
+        .select()
+        .single();
+
+    if (error) throw error;
+
+    // Sincronizar monto en agenda_items si estaba enlazado
+    await supabase
+        .from('agenda_items')
+        .update({ amount: cleanAmt, updated_at: new Date().toISOString() })
+        .eq('linked_tx_id', tx.id);
+
+    if (tx.commitment_id) {
+        await refreshCommitmentStatusByBalance(tx.commitment_id);
+    }
+
+    return updatedTx;
+}
+
+/**
+ * Elimina una transacción del Libro Mayor o del historial de una deuda.
+ * Si pertenecía a una deuda/inversión, revierte la cuota en agenda_items a 'pendiente'
+ * y descuenta el avance en financial_commitments.
+ */
+export async function deleteTransactionWithSync(tx) {
+    if (!tx?.id) return;
+
+    // 1. Revertir ítem de agenda enlazado (si existe)
+    await supabase
+        .from('agenda_items')
+        .update({
+            status: 'pendiente',
+            completed_at: null,
+            linked_tx_id: null,
+            updated_at: new Date().toISOString()
+        })
+        .eq('linked_tx_id', tx.id);
+
+    // 2. Eliminar transacción
+    const { error } = await supabase.from('finance_transactions').delete().eq('id', tx.id);
+    if (error) throw error;
+
+    // 3. Ajustar progreso del compromiso si aplicaba
+    if (tx.commitment_id) {
+        const { data: comm } = await supabase
+            .from('financial_commitments')
+            .select('id, paid_installments, total_installments, principal_amount, kind')
+            .eq('id', tx.commitment_id)
+            .single();
+
+        if (comm) {
+            const isExtra = String(tx.title || '').toLowerCase().includes('abono extra');
+            const nextPaid = isExtra
+                ? Number(comm.paid_installments || 0)
+                : Math.max(0, Number(comm.paid_installments || 0) - 1);
+
+            await supabase
+                .from('financial_commitments')
+                .update({
+                    paid_installments: nextPaid,
+                    status: 'activo',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', comm.id);
+
+            await refreshCommitmentStatusByBalance(comm.id);
+        }
+    }
+}
+
+/**
+ * Cuadra exactamente `paid_installments` y `status` contra el historial real
+ * de transacciones existentes para esa deuda/inversión.
+ */
+export async function reconcileCommitmentWithHistory(commitmentId) {
+    const [{ data: comm, error: cErr }, historyMap] = await Promise.all([
+        supabase.from('financial_commitments').select('*').eq('id', commitmentId).single(),
+        loadCommitmentTransactions([commitmentId])
+    ]);
+    if (cErr) throw cErr;
+
+    const txList = historyMap[commitmentId] || [];
+    const regularPayments = txList.filter(t => !String(t.title || '').toLowerCase().includes('abono extra')).length;
+    const realPaidSum = txList.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+
+    const paidByCount = Boolean(comm.total_installments && regularPayments >= Number(comm.total_installments));
+    const paidByCapital = Boolean(comm.kind === 'deuda' && Number(comm.principal_amount || 0) > 0 && realPaidSum >= Number(comm.principal_amount));
+    const nextStatus = (paidByCount || paidByCapital) ? 'pagado' : 'activo';
+
+    const { data: updated, error: upErr } = await supabase
+        .from('financial_commitments')
+        .update({
+            paid_installments: regularPayments,
+            status: nextStatus,
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', commitmentId)
+        .select()
+        .single();
+
     if (upErr) throw upErr;
+    return { commitment: updated, realPaidSum, count: txList.length };
+}
+
+async function refreshCommitmentStatusByBalance(commitmentId) {
+    const [{ data: comm }, historyMap] = await Promise.all([
+        supabase.from('financial_commitments').select('id, kind, principal_amount, total_installments, paid_installments').eq('id', commitmentId).single(),
+        loadCommitmentTransactions([commitmentId])
+    ]);
+    if (!comm) return;
+
+    const realPaidSum = (historyMap[commitmentId] || []).reduce((acc, r) => acc + Number(r.amount || 0), 0);
+    const paidByCount = Boolean(comm.total_installments && Number(comm.paid_installments || 0) >= Number(comm.total_installments));
+    const paidByCapital = Boolean(comm.kind === 'deuda' && Number(comm.principal_amount || 0) > 0 && realPaidSum >= Number(comm.principal_amount));
+
+    await supabase
+        .from('financial_commitments')
+        .update({
+            status: (paidByCount || paidByCapital) ? 'pagado' : 'activo',
+            updated_at: new Date().toISOString()
+        })
+        .eq('id', commitmentId);
 }
 
 export async function deleteCommitment(commitmentId) {

@@ -2,8 +2,11 @@
 import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
+import { escapeHTML } from '../services/finance.service.js';
+import { createAgendaItem, getTodayISO } from '../services/agenda.service.js';
 
 let currentUser = null;
+let currentAuthorName = 'Miembro';
 let allHabits = [];
 let allLogs = [];
 
@@ -13,15 +16,6 @@ let pomoRemainingSec = 25 * 60;
 let pomoSelectedMin = 25;
 let isPomoRunning = false;
 
-function escapeHTML(str = '') {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 export async function initHabits() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -29,6 +23,8 @@ export async function initHabits() {
         return;
     }
     currentUser = user;
+    const meta = user.user_metadata || {};
+    currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
 
     const todayLabel = document.getElementById('habitsTodayLabel');
     if (todayLabel) {
@@ -183,9 +179,12 @@ function renderHabitsMatrix() {
 
     const last7Days = getLast7Days();
     const last7ISO = new Set(last7Days.map(d => d.iso));
+    const todayISO = getTodayISO();
 
     allHabits.forEach(habit => {
         const streak = calculateStreak(habit.id);
+        const doneToday = allLogs.some(l => l.habit_id === habit.id && l.completed_date === todayISO);
+        const streakAtRisk = streak > 0 && !doneToday;
         const doneLast7 = allLogs.filter(l => l.habit_id === habit.id && last7ISO.has(l.completed_date)).length;
         const target = Number(habit.target_days_per_week || 7);
         const pct = Math.min(100, Math.round((doneLast7 / target) * 100));
@@ -193,7 +192,7 @@ function renderHabitsMatrix() {
         const card = document.createElement('div');
         card.style.cssText = `
             background: var(--bg-color);
-            border: 1px solid var(--border-card);
+            border: 1px solid ${streakAtRisk ? 'var(--warning-color, #f59e0b)' : 'var(--border-card)'};
             border-radius: 18px;
             padding: 1.3rem 1.5rem;
             display: flex;
@@ -230,25 +229,73 @@ function renderHabitsMatrix() {
         card.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                 <div>
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                         <h4 style="font-size: 1.05rem; font-weight: 700; color: var(--text-main); margin: 0;">${escapeHTML(habit.title)}</h4>
-                        <span style="font-size: 0.75rem; padding: 2px 9px; border-radius: 10px; background: var(--icon-bg); color: var(--primary-neon); font-weight: 700;">
+                        <span style="font-size: 0.74rem; padding: 2px 9px; border-radius: 10px; background: var(--icon-bg); color: var(--primary-neon); font-weight: 700;">
                             🔥 Racha: ${streak}d
                         </span>
+                        ${streakAtRisk ? `<span style="font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; background: rgba(245,158,11,0.16); color: #f59e0b; font-weight: 700;">⚠️ Pendiente hoy</span>` : ''}
                         <span style="font-size: 0.75rem; color: var(--text-muted);">
-                            Meta: ${doneLast7}/${target} días (${pct}%)
+                            Meta: ${doneLast7}/${target}d (${pct}%)
                         </span>
                     </div>
                     ${habit.description ? `<p style="font-size: 0.82rem; color: var(--text-muted); margin: 4px 0 0 0;">${escapeHTML(habit.description)}</p>` : ''}
                 </div>
 
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <button type="button" class="btn-outline btn-focus-this" title="Cargar en Enfoque Absoluto" style="padding: 4px 8px; font-size: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <button type="button" class="btn-outline btn-quick-today" style="padding: 4px 9px; font-size: 0.75rem; font-weight: 700; border-color: ${doneToday ? '#10b981' : 'var(--primary-neon)'}; color: ${doneToday ? '#10b981' : 'var(--primary-neon)'};">
+                        ${doneToday ? '✓ Hecho Hoy' : '+ Marcar Hoy'}
+                    </button>
+                    <button type="button" class="btn-outline btn-focus-this" title="Cargar en Enfoque Absoluto" style="padding: 4px 8px; font-size: 0.74rem;">
                         🎯 Enfoque
+                    </button>
+                    <button type="button" class="btn-outline btn-open-hab-agenda" title="Programar en Centro de Agendas" style="padding: 4px 8px; font-size: 0.74rem; border-color: #0ea5e9; color: #0ea5e9;">
+                        📅 Agendar
+                    </button>
+                    <button type="button" class="btn-outline btn-open-hab-edit" title="Editar meta o detalle" style="padding: 4px 8px; font-size: 0.74rem;">
+                        ✏️
                     </button>
                     <button type="button" class="btn-outline btn-delete-habit" title="Eliminar hábito" style="border-color: transparent; color: var(--danger-color, #ef4444); padding: 4px 8px;">
                         ✕
                     </button>
+                </div>
+            </div>
+
+            <!-- Panel inline: Programar Rutina en Agenda -->
+            <div class="hab-agenda-panel" style="display: none; padding: 0.8rem; border-radius: 12px; background: var(--panel-bg); border: 1px dashed #0ea5e9; flex-direction: column; gap: 0.6rem;">
+                <div style="font-size: 0.74rem; font-weight: 800; color: #0ea5e9; text-transform: uppercase;">📅 Programar Rutina en Centro de Agendas</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Fecha inicio</label>
+                        <input type="date" class="form-input hab-ag-date" value="${todayISO}" style="padding: 0.38rem 0.55rem; font-size: 0.8rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Hora (opc.)</label>
+                        <input type="time" class="form-input hab-ag-time" value="07:00" style="padding: 0.38rem 0.55rem; font-size: 0.8rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 2px;">Alcance</label>
+                        <select class="form-input hab-ag-span" style="padding: 0.38rem 0.5rem; font-size: 0.8rem;">
+                            <option value="1">Solo ese día</option>
+                            <option value="${target}">Próximos ${target} días (meta semanal)</option>
+                        </select>
+                    </div>
+                    <button type="button" class="btn-save btn-save-hab-agenda" style="margin: 0; padding: 0.42rem 0.85rem; font-size: 0.76rem;">Agendar ✓</button>
+                </div>
+            </div>
+
+            <!-- Panel inline: Editar Hábito sin perder racha -->
+            <div class="hab-edit-panel" style="display: none; padding: 0.8rem; border-radius: 12px; background: var(--panel-bg); border: 1px dashed var(--border-card); flex-direction: column; gap: 0.6rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px;">
+                    <input type="text" class="form-input hab-edit-title" value="${escapeHTML(habit.title)}" placeholder="Título" style="padding: 0.42rem 0.65rem; font-size: 0.82rem;">
+                    <input type="text" class="form-input hab-edit-desc" value="${escapeHTML(habit.description || '')}" placeholder="Regla mínima" style="padding: 0.42rem 0.65rem; font-size: 0.82rem;">
+                    <select class="form-input hab-edit-target" style="padding: 0.42rem; font-size: 0.82rem;">
+                        ${[7, 6, 5, 4, 3, 2, 1].map(n => `<option value="${n}" ${target === n ? 'selected' : ''}>${n} día(s)/semana</option>`).join('')}
+                    </select>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 6px;">
+                    <button type="button" class="btn-outline btn-cancel-hab-edit" style="padding: 0.35rem 0.7rem; font-size: 0.74rem;">Cancelar</button>
+                    <button type="button" class="btn-save btn-save-hab-edit" style="margin: 0; padding: 0.38rem 0.85rem; font-size: 0.74rem;">Guardar Cambios</button>
                 </div>
             </div>
 
@@ -261,12 +308,104 @@ function renderHabitsMatrix() {
             </div>
         `;
 
+        const agPanel = card.querySelector('.hab-agenda-panel');
+        const editPanel = card.querySelector('.hab-edit-panel');
+
+        card.querySelector('.btn-quick-today').addEventListener('click', async (e) => {
+            e.currentTarget.disabled = true;
+            await toggleHabitDate(habit, todayISO);
+        });
+
         card.querySelector('.btn-focus-this').addEventListener('click', () => {
             const selectEl = document.getElementById('pomoHabitSelect');
             if (selectEl) {
                 selectEl.value = habit.id;
                 selectEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 showToast(`"${habit.title}" vinculado al temporizador de Enfoque.`, 'info');
+            }
+        });
+
+        card.querySelector('.btn-open-hab-agenda').addEventListener('click', () => {
+            editPanel.style.display = 'none';
+            agPanel.style.display = agPanel.style.display === 'none' ? 'flex' : 'none';
+        });
+
+        card.querySelector('.btn-save-hab-agenda').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const startDate = card.querySelector('.hab-ag-date').value || todayISO;
+                const dueTime = card.querySelector('.hab-ag-time').value || null;
+                const spanDays = Math.min(7, Math.max(1, Number(card.querySelector('.hab-ag-span').value || 1)));
+
+                const base = new Date(`${startDate}T12:00:00`);
+                const rows = [];
+                for (let i = 0; i < spanDays; i++) {
+                    const dt = new Date(base);
+                    dt.setDate(base.getDate() + i);
+                    rows.push({
+                        user_id: currentUser.id,
+                        household_id: null,
+                        author_name: currentAuthorName,
+                        assigned_to: 'Personal',
+                        title: `🎯 Hábito: ${habit.title}`,
+                        description: habit.description || `Rutina diaria (Meta: ${target}d/sem)`,
+                        item_type: 'tarea',
+                        priority: 'media',
+                        due_date: dt.toISOString().slice(0, 10),
+                        due_time: dueTime,
+                        status: 'pendiente',
+                        color_tag: '#10b981'
+                    });
+                }
+
+                const { error } = await supabase.from('agenda_items').insert(rows);
+                if (error) throw error;
+
+                agPanel.style.display = 'none';
+                showToast(`${rows.length} recordatorio(s) de "${habit.title}" enviados a tu Agenda.`, 'success');
+            } catch (err) {
+                showToast('Error al agendar hábito: ' + err.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        card.querySelector('.btn-open-hab-edit').addEventListener('click', () => {
+            agPanel.style.display = 'none';
+            editPanel.style.display = editPanel.style.display === 'none' ? 'flex' : 'none';
+        });
+        card.querySelector('.btn-cancel-hab-edit').addEventListener('click', () => {
+            editPanel.style.display = 'none';
+        });
+        card.querySelector('.btn-save-hab-edit').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.disabled = true;
+            try {
+                const newTitle = card.querySelector('.hab-edit-title').value.trim();
+                const newDesc = card.querySelector('.hab-edit-desc').value.trim() || null;
+                const newTarget = parseInt(card.querySelector('.hab-edit-target').value, 10) || 7;
+                if (!newTitle) {
+                    btn.disabled = false;
+                    return;
+                }
+
+                const { error } = await supabase
+                    .from('habits')
+                    .update({ title: newTitle, description: newDesc, target_days_per_week: newTarget })
+                    .eq('id', habit.id);
+                if (error) throw error;
+
+                habit.title = newTitle;
+                habit.description = newDesc;
+                habit.target_days_per_week = newTarget;
+                populateFocusHabitSelector();
+                updateKPIs();
+                renderHabitsMatrix();
+                showToast('Hábito actualizado conservando tu racha.', 'success');
+            } catch (err) {
+                showToast('Error al actualizar hábito: ' + err.message, 'error');
+                btn.disabled = false;
             }
         });
 
@@ -299,7 +438,7 @@ async function toggleHabitDate(habit, targetDate, forceCheck = false) {
     const existingLog = allLogs.find(l => l.habit_id === habit.id && l.completed_date === targetDate);
 
     if (existingLog) {
-        if (forceCheck) return; // Si viene del Pomodoro y ya estaba marcado hoy, no desmarcar
+        if (forceCheck) return;
         const { error } = await supabase.from('habit_logs').delete().eq('id', existingLog.id);
         if (!error) {
             allLogs = allLogs.filter(l => l.id !== existingLog.id);
@@ -324,7 +463,7 @@ async function toggleHabitDate(habit, targetDate, forceCheck = false) {
     renderHabitsMatrix();
 }
 
-// TEMPORIZADOR DE ENFOQUE ABSOLUTO (POMODORO + BLOQUEO DND)
+// TEMPORIZADOR DE ENFOQUE ABSOLUTO (POMODORO + BLOQUEO DND + PUENTE A AGENDA)
 function playCompletionChime() {
     try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -343,10 +482,9 @@ function playCompletionChime() {
 }
 
 function initFocusTimerUI() {
-    const displayEl = document.getElementById('pomoTimerDisplay');
-    const badgeEl = document.getElementById('pomoStatusBadge');
     const btnStart = document.getElementById('btnPomoStart');
     const btnReset = document.getElementById('btnPomoReset');
+    const btnSchedule = document.getElementById('btnPomoScheduleAgenda');
     const dndCheck = document.getElementById('pomoDndCheck');
     const modeBtns = document.querySelectorAll('.pomo-mode-btn');
 
@@ -433,6 +571,38 @@ function initFocusTimerUI() {
             window.NGN_FOCUS_LOCK = false;
             pomoRemainingSec = pomoSelectedMin * 60;
             syncUI();
+        });
+    }
+
+    if (btnSchedule) {
+        btnSchedule.addEventListener('click', async () => {
+            btnSchedule.disabled = true;
+            try {
+                const selectEl = document.getElementById('pomoHabitSelect');
+                const habit = allHabits.find(h => h.id === selectEl?.value);
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+                await createAgendaItem({
+                    user_id: currentUser.id,
+                    household_id: null,
+                    author_name: currentAuthorName,
+                    assigned_to: 'Personal',
+                    title: habit ? `🎯 Enfoque (${pomoSelectedMin}m): ${habit.title}` : `🎯 Bloque de Enfoque Absoluto (${pomoSelectedMin}m)`,
+                    description: 'Sesión programada desde Rastreador de Hábitos',
+                    item_type: 'evento',
+                    priority: 'alta',
+                    due_date: getTodayISO(),
+                    due_time: timeStr,
+                    status: 'pendiente',
+                    color_tag: '#0ea5e9'
+                });
+                showToast('Bloque de enfoque añadido a tu Agenda de hoy.', 'success');
+            } catch (err) {
+                showToast('Error al agendar sesión: ' + err.message, 'error');
+            } finally {
+                btnSchedule.disabled = false;
+            }
         });
     }
 }

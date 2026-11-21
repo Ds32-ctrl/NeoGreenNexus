@@ -11,9 +11,13 @@ import {
     summarizeTransactions,
     getMonthlyCommitmentImpact,
     loadCommitments,
+    loadCommitmentTransactions,
     createCommitmentWithAgenda,
     updateCommitmentAndResyncAgenda,
-    payNextCommitmentInstallment,
+    payCommitmentInstallment,
+    updateCommitmentPayment,
+    deleteTransactionWithSync,
+    reconcileCommitmentWithHistory,
     deleteCommitment
 } from '../services/finance.service.js';
 import {
@@ -30,6 +34,8 @@ let currentScope = 'personal'; // 'personal' | 'household'
 
 let allTransactions = [];
 let allCommitments = [];
+let commitmentHistoryMap = {}; // { commitmentId: [tx, ...] }
+
 let selectedTxMode = 'gasto'; // 'gasto' | 'ingreso' | 'reserva' | 'compromiso'
 let selectedCommitmentKind = 'deuda'; // 'deuda' | 'inversion'
 let selectedMonth = 'all';
@@ -108,6 +114,7 @@ async function loadFinanceData() {
 
         allTransactions = txRes.data || [];
         allCommitments = commList || [];
+        commitmentHistoryMap = await loadCommitmentTransactions(allCommitments.map(c => c.id)).catch(() => ({}));
 
         renderCommitmentsList();
         recalculateAndRender();
@@ -200,7 +207,7 @@ function updateBudgetThermometer(s) {
     }
 }
 
-// RENDERIZADO DE CARTERA DE DEUDAS E INVERSIONES CON AJUSTE DE CUOTAS INLINE
+// RENDERIZADO DE CARTERA DE DEUDAS E INVERSIONES CON ABONO FLEXIBLE + HISTORIAL REAL EDITABLE
 function renderCommitmentsList() {
     const container = document.getElementById('finCommitmentsList');
     const summaryEl = document.getElementById('finCommitmentsSummary');
@@ -231,14 +238,32 @@ function renderCommitmentsList() {
         const accent = isPaidOff ? '#10b981' : (c.color_tag || (isDebt ? '#a855f7' : '#14b8a6'));
         const paid = Number(c.paid_installments || 0);
         const total = c.total_installments ? Number(c.total_installments) : null;
-        const pct = total ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+        const principal = Number(c.principal_amount || 0);
+
+        const historyRows = commitmentHistoryMap[c.id] || [];
+        const realPaidTotal = historyRows.reduce((acc, r) => acc + Number(r.amount || 0), 0);
+        const remainingCapital = principal > 0 ? Math.max(0, principal - realPaidTotal) : null;
+
+        // Barra de progreso: prioriza capital real si existe y hay abonos; si no, conteo de cuotas
+        let pct = 0;
+        if (principal > 0 && realPaidTotal > 0) {
+            pct = Math.min(100, Math.round((realPaidTotal / principal) * 100));
+        } else if (total) {
+            pct = Math.min(100, Math.round((paid / total) * 100));
+        }
+
         const monthlyEq = getMonthlyCommitmentImpact(c);
         const schedText = describeCommitmentSchedule(c);
         const daysStr = normalizeBillingDays(c.billing_days, c.billing_day).join(', ');
+        const defaultSource = c.household_id ? 'household' : 'personal';
 
         const progressLabel = total
             ? `${paid} de ${total} cuotas (${pct}%)`
             : `${paid} aporte(s) ejecutado(s) • Plazo abierto`;
+
+        const balanceLine = principal > 0
+            ? `Abonado real: <strong style="color: #10b981;">${formatCOP(realPaidTotal)}</strong> • ${isDebt ? 'Saldo restante' : 'Faltante meta'}: <strong style="color: ${accent};">${formatCOP(remainingCapital)}</strong>`
+            : `Total abonado en historial: <strong style="color: #10b981;">${formatCOP(realPaidTotal)}</strong>`;
 
         const card = document.createElement('div');
         card.style.cssText = `
@@ -250,7 +275,7 @@ function renderCommitmentsList() {
             display: flex;
             flex-direction: column;
             gap: 0.65rem;
-            opacity: ${isPaidOff ? '0.72' : '1'};
+            opacity: ${isPaidOff ? '0.76' : '1'};
         `;
 
         card.innerHTML = `
@@ -268,14 +293,22 @@ function renderCommitmentsList() {
                     <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
                         Cuota: <strong style="color: var(--text-main);">${formatCOP(c.monthly_amount)}</strong>
                         ${monthlyEq !== Number(c.monthly_amount) ? ` • Equiv. mensual: <strong style="color: ${accent};">${formatCOP(monthlyEq)}/mes</strong>` : ''}
-                        ${Number(c.principal_amount) > 0 ? ` • ${isDebt ? 'Capital' : 'Meta'}: ${formatCOP(c.principal_amount)}` : ''}
+                        ${principal > 0 ? ` • ${isDebt ? 'Capital' : 'Meta'}: ${formatCOP(principal)}` : ''}
+                    </div>
+                    <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 3px;">
+                        ${balanceLine}
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-                    ${!isPaidOff ? `<button type="button" class="btn-outline btn-pay-next-comm" style="padding: 0.38rem 0.75rem; font-size: 0.76rem; font-weight: 700; border-color: var(--primary-neon); color: var(--primary-neon);">${isDebt ? '💳 Pagar Cuota' : '📈 Aportar'}</button>` : ''}
-                    ${!isPaidOff ? `<button type="button" class="btn-outline btn-edit-comm" title="Ajustar frecuencia, días o monto" style="padding: 0.38rem 0.68rem; font-size: 0.76rem;">⚙️ Ajustar</button>` : ''}
-                    <button type="button" class="btn-outline btn-del-comm" title="Eliminar compromiso y sus cuotas pendientes" style="padding: 0.38rem 0.6rem; font-size: 0.76rem; border-color: transparent; color: var(--text-muted);">✕</button>
+                    <button type="button" class="btn-outline btn-open-pay-comm" style="padding: 0.38rem 0.75rem; font-size: 0.76rem; font-weight: 700; border-color: var(--primary-neon); color: var(--primary-neon);">
+                        ${isDebt ? '💳 Abonar' : '📈 Aportar'}
+                    </button>
+                    <button type="button" class="btn-outline btn-open-history-comm" style="padding: 0.38rem 0.72rem; font-size: 0.76rem; font-weight: 600;">
+                        📜 Historial (${historyRows.length})
+                    </button>
+                    <button type="button" class="btn-outline btn-edit-comm" title="Ajustar frecuencia, días o capital" style="padding: 0.38rem 0.68rem; font-size: 0.76rem;">⚙️ Ajustar</button>
+                    <button type="button" class="btn-outline btn-del-comm" title="Eliminar compromiso y cuotas pendientes" style="padding: 0.38rem 0.6rem; font-size: 0.76rem; border-color: transparent; color: var(--text-muted);">✕</button>
                 </div>
             </div>
 
@@ -284,14 +317,59 @@ function renderCommitmentsList() {
                     <span>${escapeHTML(progressLabel)}</span>
                     <span>Inicio: ${escapeHTML(c.start_date || '')}</span>
                 </div>
-                ${total ? `
+                ${(total || principal > 0) ? `
                     <div style="width: 100%; height: 7px; background: var(--bg-color); border-radius: 6px; overflow: hidden;">
                         <div style="width: ${pct}%; height: 100%; background: ${accent}; transition: width 0.3s ease;"></div>
                     </div>
                 ` : ''}
             </div>
 
-            <!-- Panel inline para ajustar cuotas sin borrar historial -->
+            <!-- PANEL 1: REGISTRAR ABONO CON MONTO EDITABLE Y SELECTOR PERSONAL / HOGAR -->
+            <div class="comm-pay-panel" style="display: none; padding: 0.85rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--primary-neon); flex-direction: column; gap: 0.65rem;">
+                <div style="font-size: 0.76rem; font-weight: 800; color: var(--primary-neon); text-transform: uppercase;">
+                    ${isDebt ? '💳 Registrar Pago o Abono Real' : '📈 Registrar Aporte a Inversión'}
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px;">
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Monto del abono ($)</label>
+                        <input type="number" class="form-input pay-comm-amount" value="${Number(c.monthly_amount)}" min="1" step="0.01" style="padding: 0.45rem 0.65rem; font-size: 0.84rem; font-weight: 700;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Fecha real del pago</label>
+                        <input type="date" class="form-input pay-comm-date" value="${getTodayISO()}" style="padding: 0.45rem 0.55rem; font-size: 0.8rem;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">¿De dónde sale el dinero?</label>
+                        <select class="form-input pay-comm-source" style="padding: 0.45rem; font-size: 0.8rem; cursor: pointer;">
+                            <option value="personal" ${defaultSource === 'personal' ? 'selected' : ''}>👤 Mi Flujo Personal</option>
+                            ${activeHousehold ? `<option value="household" ${defaultSource === 'household' ? 'selected' : ''}>🏠 Hogar (${escapeHTML(activeHousehold.name)})</option>` : ''}
+                        </select>
+                    </div>
+                </div>
+                <label style="display: flex; align-items: center; gap: 7px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer;">
+                    <input type="checkbox" class="pay-comm-extra" style="width: 15px; height: 15px; accent-color: var(--primary-neon);">
+                    Es un abono extra a capital (reduce saldo sin consumir la próxima cuota de la Agenda)
+                </label>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button type="button" class="btn-outline btn-cancel-pay-comm" style="padding: 0.38rem 0.75rem; font-size: 0.76rem;">Cancelar</button>
+                    <button type="button" class="btn-save btn-confirm-pay-comm" style="margin: 0; padding: 0.42rem 0.9rem; font-size: 0.76rem;">Confirmar Abono ✓</button>
+                </div>
+            </div>
+
+            <!-- PANEL 2: HISTORIAL REAL DE PAGOS (EDITAR / ELIMINAR / CUADRAR) -->
+            <div class="comm-history-panel" style="display: none; padding: 0.85rem; border-radius: 12px; background: var(--bg-color); border: 1px solid var(--border-card); flex-direction: column; gap: 0.65rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                    <span style="font-size: 0.76rem; font-weight: 800; color: var(--text-main); text-transform: uppercase;">
+                        📜 Historial Real de Abonos (${historyRows.length})
+                    </span>
+                    <button type="button" class="btn-outline btn-reconcile-comm" title="Iguala el contador de cuotas pagadas al número real de abonos registrados" style="padding: 0.28rem 0.65rem; font-size: 0.72rem; border-color: #0ea5e9; color: #0ea5e9;">
+                        🔄 Cuadrar progreso con historial
+                    </button>
+                </div>
+                <div class="comm-history-rows" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+            </div>
+
+            <!-- PANEL 3: AJUSTAR CONFIGURACIÓN DE CUOTAS -->
             <div class="comm-edit-panel" style="display: none; padding-top: 0.75rem; border-top: 1px dashed var(--border-card); flex-direction: column; gap: 0.6rem;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px;">
                     <div>
@@ -308,12 +386,16 @@ function renderCommitmentsList() {
                         <input type="text" class="form-input edit-comm-days" value="${escapeHTML(daysStr)}" style="padding: 0.42rem 0.6rem; font-size: 0.8rem;">
                     </div>
                     <div>
-                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Intervalo (si Cada N días)</label>
+                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Intervalo (Cada N días)</label>
                         <input type="number" class="form-input edit-comm-interval" value="${Number(c.interval_days || 15)}" min="1" max="365" style="padding: 0.42rem 0.6rem; font-size: 0.8rem;">
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Valor cuota ($)</label>
                         <input type="number" class="form-input edit-comm-amount" value="${Number(c.monthly_amount)}" min="1" step="0.01" style="padding: 0.42rem 0.6rem; font-size: 0.8rem; font-weight: 700;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Capital / Meta ($)</label>
+                        <input type="number" class="form-input edit-comm-principal" value="${principal}" min="0" step="100" style="padding: 0.42rem 0.6rem; font-size: 0.8rem;">
                     </div>
                     <div>
                         <label style="display: block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 2px;">Total cuotas (vacío=∞)</label>
@@ -331,29 +413,151 @@ function renderCommitmentsList() {
             </div>
         `;
 
-        // Pagar siguiente cuota en 1 clic
-        card.querySelector('.btn-pay-next-comm')?.addEventListener('click', async (e) => {
+        // Helper para cerrar paneles hermanos y abrir uno
+        const payPanel = card.querySelector('.comm-pay-panel');
+        const histPanel = card.querySelector('.comm-history-panel');
+        const editPanel = card.querySelector('.comm-edit-panel');
+        const toggleSubPanel = (target) => {
+            const wasOpen = target.style.display === 'flex';
+            payPanel.style.display = 'none';
+            histPanel.style.display = 'none';
+            editPanel.style.display = 'none';
+            if (!wasOpen) target.style.display = 'flex';
+        };
+
+        // Renderizar filas del historial real con edición y eliminación por abono
+        const histContainer = card.querySelector('.comm-history-rows');
+        if (historyRows.length === 0) {
+            histContainer.innerHTML = `<p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">Aún no hay abonos registrados en el libro mayor para este compromiso. Usa <strong>Abonar</strong> para registrar pagos actuales o pasados.</p>`;
+        } else {
+            historyRows.forEach(tx => {
+                const isHouseTx = Boolean(tx.household_id);
+                const txDate = tx.transaction_date || (tx.created_at ? tx.created_at.slice(0, 10) : '');
+                const itemEl = document.createElement('div');
+                itemEl.style.cssText = 'background: var(--panel-bg); border: 1px solid var(--border-card); border-radius: 10px; padding: 0.65rem 0.8rem; display: flex; flex-direction: column; gap: 0.5rem;';
+                itemEl.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <div>
+                            <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
+                                ${escapeHTML(tx.title)}
+                                <span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 6px; background: var(--bg-color); color: ${isHouseTx ? 'var(--primary-neon)' : 'var(--text-muted)'}; margin-left: 4px;">
+                                    ${isHouseTx ? '🏠 Hogar' : '👤 Personal'}
+                                </span>
+                            </div>
+                            <div style="font-size: 0.72rem; color: var(--text-muted);">
+                                Fecha: ${escapeHTML(txDate)} • Por: ${escapeHTML(tx.author_name || 'Miembro')}
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <strong style="font-size: 0.88rem; color: ${accent};">${formatCOP(tx.amount)}</strong>
+                            <button type="button" class="btn-outline btn-edit-hist-tx" title="Editar monto, fecha u origen" style="padding: 3px 7px; font-size: 0.72rem;">✏️</button>
+                            <button type="button" class="btn-outline btn-del-hist-tx" title="Eliminar pago y revertir cuota" style="padding: 3px 7px; font-size: 0.72rem; color: var(--danger-color, #ef4444);">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="hist-edit-row" style="display: none; padding-top: 0.5rem; border-top: 1px dashed var(--border-card); gap: 6px; flex-wrap: wrap; align-items: center;">
+                        <input type="number" class="form-input hist-edit-amt" value="${Number(tx.amount)}" min="1" step="0.01" style="width: 110px; padding: 0.35rem 0.5rem; font-size: 0.78rem; font-weight: 700;">
+                        <input type="date" class="form-input hist-edit-date" value="${escapeHTML(txDate)}" style="width: auto; padding: 0.35rem 0.45rem; font-size: 0.76rem;">
+                        <select class="form-input hist-edit-src" style="width: auto; padding: 0.35rem; font-size: 0.76rem;">
+                            <option value="personal" ${!isHouseTx ? 'selected' : ''}>👤 Personal</option>
+                            ${activeHousehold ? `<option value="household" ${isHouseTx ? 'selected' : ''}>🏠 Hogar</option>` : ''}
+                        </select>
+                        <button type="button" class="btn-save btn-save-hist-tx" style="margin: 0; padding: 0.36rem 0.7rem; font-size: 0.74rem;">Guardar</button>
+                    </div>
+                `;
+
+                const editRow = itemEl.querySelector('.hist-edit-row');
+                itemEl.querySelector('.btn-edit-hist-tx').addEventListener('click', () => {
+                    editRow.style.display = editRow.style.display === 'none' ? 'flex' : 'none';
+                });
+
+                itemEl.querySelector('.btn-save-hist-tx').addEventListener('click', async (e) => {
+                    e.currentTarget.disabled = true;
+                    try {
+                        const newAmt = Number(itemEl.querySelector('.hist-edit-amt').value);
+                        const newDate = itemEl.querySelector('.hist-edit-date').value;
+                        const srcVal = itemEl.querySelector('.hist-edit-src').value;
+                        const newHouseId = (srcVal === 'household' && activeHousehold) ? activeHousehold.id : null;
+
+                        await updateCommitmentPayment(tx, {
+                            amount: newAmt,
+                            transactionDate: newDate,
+                            sourceHouseholdId: newHouseId
+                        });
+                        showToast('Abono actualizado y balance recalculado.', 'success');
+                        await loadFinanceData();
+                    } catch (err) {
+                        showToast('Error al editar abono: ' + err.message, 'error');
+                        e.currentTarget.disabled = false;
+                    }
+                });
+
+                itemEl.querySelector('.btn-del-hist-tx').addEventListener('click', async (e) => {
+                    e.currentTarget.disabled = true;
+                    try {
+                        await deleteTransactionWithSync(tx);
+                        showToast('Pago eliminado, saldo restaurado y cuota reabierta en Agenda.', 'info');
+                        await loadFinanceData();
+                    } catch (err) {
+                        showToast('Error al eliminar pago: ' + err.message, 'error');
+                        e.currentTarget.disabled = false;
+                    }
+                });
+
+                histContainer.appendChild(itemEl);
+            });
+        }
+
+        // Eventos de botones principales de la tarjeta
+        card.querySelector('.btn-open-pay-comm').addEventListener('click', () => toggleSubPanel(payPanel));
+        card.querySelector('.btn-cancel-pay-comm').addEventListener('click', () => { payPanel.style.display = 'none'; });
+        card.querySelector('.btn-open-history-comm').addEventListener('click', () => toggleSubPanel(histPanel));
+        card.querySelector('.btn-edit-comm').addEventListener('click', () => toggleSubPanel(editPanel));
+        card.querySelector('.btn-cancel-edit-comm').addEventListener('click', () => { editPanel.style.display = 'none'; });
+
+        // Confirmar Abono Flexible
+        card.querySelector('.btn-confirm-pay-comm').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             btn.disabled = true;
             try {
-                await payNextCommitmentInstallment(c, { userId: currentUser.id, authorName: currentAuthorName });
-                showToast(isDebt ? 'Cuota pagada, descontada de caja y marcada en Agenda.' : 'Aporte de inversión registrado y marcado en Agenda.', 'success');
+                const amt = Number(card.querySelector('.pay-comm-amount').value);
+                const payDate = card.querySelector('.pay-comm-date').value;
+                const srcVal = card.querySelector('.pay-comm-source').value;
+                const isExtra = Boolean(card.querySelector('.pay-comm-extra').checked);
+                const sourceHouseholdId = (srcVal === 'household' && activeHousehold) ? activeHousehold.id : null;
+
+                await payCommitmentInstallment(c, {
+                    userId: currentUser.id,
+                    authorName: currentAuthorName,
+                    amount: amt,
+                    transactionDate: payDate,
+                    sourceHouseholdId,
+                    isExtraCapital: isExtra
+                });
+
+                const srcLabel = sourceHouseholdId ? 'Hogar Familiar' : 'Flujo Personal';
+                showToast(`Abono de ${formatCOP(amt)} descontado de ${srcLabel} y sincronizado.`, 'success');
                 await loadFinanceData();
             } catch (err) {
-                showToast('Error al liquidar cuota: ' + err.message, 'error');
+                showToast('Error al registrar abono: ' + err.message, 'error');
                 btn.disabled = false;
             }
         });
 
-        // Abrir/Guardar ajuste de cuotas
-        const editPanel = card.querySelector('.comm-edit-panel');
-        card.querySelector('.btn-edit-comm')?.addEventListener('click', () => {
-            editPanel.style.display = editPanel.style.display === 'none' ? 'flex' : 'none';
+        // Reconciliar progreso con historial real
+        card.querySelector('.btn-reconcile-comm').addEventListener('click', async (e) => {
+            e.currentTarget.disabled = true;
+            try {
+                const res = await reconcileCommitmentWithHistory(c.id);
+                showToast(`Progreso cuadrado: ${res.count} abono(s) reales (${formatCOP(res.realPaidSum)}).`, 'success');
+                await loadFinanceData();
+            } catch (err) {
+                showToast('Error al cuadrar historial: ' + err.message, 'error');
+                e.currentTarget.disabled = false;
+            }
         });
-        card.querySelector('.btn-cancel-edit-comm')?.addEventListener('click', () => {
-            editPanel.style.display = 'none';
-        });
-        card.querySelector('.btn-save-edit-comm')?.addEventListener('click', async (e) => {
+
+        // Guardar ajuste de configuración
+        card.querySelector('.btn-save-edit-comm').addEventListener('click', async (e) => {
             const btn = e.currentTarget;
             btn.disabled = true;
             try {
@@ -361,6 +565,7 @@ function renderCommitmentsList() {
                 const newDays = normalizeBillingDays(card.querySelector('.edit-comm-days').value, c.billing_day);
                 const newInterval = Number(card.querySelector('.edit-comm-interval').value || 15);
                 const newAmt = Number(card.querySelector('.edit-comm-amount').value);
+                const newPrincipal = Number(card.querySelector('.edit-comm-principal').value || 0);
                 const newTotalRaw = card.querySelector('.edit-comm-total').value;
                 const newStart = card.querySelector('.edit-comm-start').value;
 
@@ -375,6 +580,7 @@ function renderCommitmentsList() {
                     billingDays: newDays,
                     intervalDays: newInterval,
                     monthlyAmount: newAmt,
+                    principalAmount: newPrincipal,
                     totalInstallments: newTotalRaw ? Number(newTotalRaw) : null,
                     startDate: newStart,
                     priority: c.priority
@@ -384,7 +590,7 @@ function renderCommitmentsList() {
                     resyncAgenda: true
                 });
 
-                showToast(`Cuotas ajustadas. ${agendaRows.length} fecha(s) actualizadas en tu Agenda.`, 'success');
+                showToast(`Compromiso ajustado. ${agendaRows.length} fecha(s) actualizadas en Agenda.`, 'success');
                 await loadFinanceData();
             } catch (err) {
                 showToast('Error al ajustar cuotas: ' + err.message, 'error');
@@ -392,7 +598,7 @@ function renderCommitmentsList() {
             }
         });
 
-        // Eliminar compromiso
+        // Eliminar compromiso completo
         card.querySelector('.btn-del-comm').addEventListener('click', async () => {
             try {
                 await deleteCommitment(c.id);
@@ -498,16 +704,17 @@ function renderLedgerList(periodList) {
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span style="font-size: 1.02rem; font-weight: 800; color: ${palette.color};">${palette.sign}${formatCOP(tx.amount)}</span>
-                <button type="button" class="btn-outline btn-del-tx" style="padding: 4px 8px; border-color: transparent; color: var(--text-muted);" title="Eliminar">✕</button>
+                <button type="button" class="btn-outline btn-del-tx" style="padding: 4px 8px; border-color: transparent; color: var(--text-muted);" title="Eliminar y sincronizar">✕</button>
             </div>
         `;
 
         row.querySelector('.btn-del-tx').addEventListener('click', async () => {
-            const { error } = await supabase.from('finance_transactions').delete().eq('id', tx.id);
-            if (!error) {
-                allTransactions = allTransactions.filter(item => item.id !== tx.id);
-                recalculateAndRender();
-                showToast('Asiento contable eliminado', 'info');
+            try {
+                await deleteTransactionWithSync(tx);
+                showToast(tx.commitment_id ? 'Pago eliminado y cuota revertida en deuda/agenda.' : 'Asiento contable eliminado.', 'info');
+                await loadFinanceData();
+            } catch (err) {
+                showToast('Error al eliminar movimiento: ' + err.message, 'error');
             }
         });
 
@@ -515,7 +722,6 @@ function renderLedgerList(periodList) {
     });
 }
 
-// HELPER: Leer configuración de frecuencia y días desde el formulario de Deudas/Inversiones
 function readCommitmentScheduleInputs() {
     const frequency = document.getElementById('commFrequencySelect')?.value || 'mensual';
     let billingDays = [1];
@@ -577,7 +783,6 @@ function updateSchedulePreview() {
 }
 
 function bindFinanceEvents() {
-    // 1. Selector de Alcance (Personal vs Hogar)
     const scopeBtns = document.querySelectorAll('.fin-scope-btn');
     scopeBtns.forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -601,7 +806,6 @@ function bindFinanceEvents() {
         });
     });
 
-    // 2. Selector de 4 Modos (Gasto / Ingreso / Reserva / Deuda-Inversión)
     const typeBtns = document.querySelectorAll('.tx-type-btn');
     const catSelect = document.getElementById('txCategorySelect');
     const txForm = document.getElementById('financeTxForm');
@@ -647,13 +851,11 @@ function bindFinanceEvents() {
         });
     });
 
-    // Atajo desde el panel de cartera hacia el modo Deuda/Inversión
     document.getElementById('btnQuickNewCommitment')?.addEventListener('click', () => {
         document.querySelector('.tx-type-btn[data-type="compromiso"]')?.click();
         document.getElementById('commTitleInput')?.focus();
     });
 
-    // 3. Sub-selector Deuda vs Inversión
     const kindBtns = document.querySelectorAll('.comm-kind-btn');
     kindBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -676,7 +878,6 @@ function bindFinanceEvents() {
         });
     });
 
-    // 4. Visibilidad dinámica de campos de Frecuencia
     const freqSelect = document.getElementById('commFrequencySelect');
     const syncFreqBoxes = () => {
         const val = freqSelect?.value || 'mensual';
@@ -688,7 +889,6 @@ function bindFinanceEvents() {
     };
     freqSelect?.addEventListener('change', syncFreqBoxes);
 
-    // Auto-sugerir días equiespaciados al cambiar "Cuotas / mes" en modo Días específicos
     document.getElementById('commPerMonthCount')?.addEventListener('input', (e) => {
         const n = Math.min(10, Math.max(1, Number(e.target.value || 1)));
         const step = Math.max(1, Math.floor(28 / n));
@@ -701,7 +901,6 @@ function bindFinanceEvents() {
         updateSchedulePreview();
     });
 
-    // Actualizar vista previa en vivo al editar cualquier campo de cuota
     [
         'commQuotaAmount', 'commSingleDayInput', 'commBiDay1', 'commBiDay2',
         'commCustomDaysInput', 'commIntervalDaysInput', 'commTotalInstallments',
@@ -710,7 +909,6 @@ function bindFinanceEvents() {
         document.getElementById(id)?.addEventListener('input', updateSchedulePreview);
     });
 
-    // 5. Envío del Formulario de Deuda / Inversión
     if (commForm) {
         commForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -775,7 +973,6 @@ function bindFinanceEvents() {
         });
     }
 
-    // 6. Guardar Asiento Contable Normal
     if (txForm) {
         txForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -833,7 +1030,6 @@ function bindFinanceEvents() {
         });
     }
 
-    // 7. Plantillas Rápidas
     document.querySelectorAll('.quick-bill-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const targetMode = btn.dataset.mode || 'gasto';
@@ -853,7 +1049,6 @@ function bindFinanceEvents() {
         });
     });
 
-    // 8. Tope Presupuestal
     document.getElementById('btnSaveBudgetLimit')?.addEventListener('click', async () => {
         const val = Number(document.getElementById('finBudgetLimitInput')?.value || 0);
         monthlyBudgetLimit = val;
@@ -863,7 +1058,6 @@ function bindFinanceEvents() {
         showToast('Límite presupuestal actualizado', 'success');
     });
 
-    // 9. Filtros y Búsqueda
     document.getElementById('finMonthFilter')?.addEventListener('change', (e) => {
         selectedMonth = e.target.value;
         recalculateAndRender();
@@ -887,7 +1081,6 @@ function bindFinanceEvents() {
         recalculateAndRender();
     });
 
-    // 10. Exportar CSV con Naturaleza Contable Completa
     document.getElementById('btnExportCSV')?.addEventListener('click', () => {
         const rows = getPeriodFilteredTransactions();
         if (rows.length === 0) {

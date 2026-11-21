@@ -3,6 +3,10 @@ import { supabase } from '../config/supabase.js';
 import { navigateTo } from '../core/router.js';
 import { showToast } from '../ui/toast.js';
 import { getActiveHousehold } from '../core/household.js';
+import { escapeHTML, formatCOP } from '../services/finance.service.js';
+import { createAgendaItem, getTodayISO } from '../services/agenda.service.js';
+
+const PRICE_CACHE_KEY = 'ngn_inventory_unit_prices_v1';
 
 let currentUser = null;
 let currentAuthorName = 'Miembro';
@@ -11,16 +15,28 @@ let allItems = [];
 let activeFilter = 'all';
 let searchQuery = '';
 
-function escapeHTML(str = '') {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+function loadPriceCatalog() {
+    try {
+        return JSON.parse(localStorage.getItem(PRICE_CACHE_KEY) || '{}');
+    } catch {
+        return {};
+    }
 }
 
-// Dentro de initInventory() en public/js/controllers/inventory.controller.js:
+function saveItemPrice(name, price) {
+    const cleanPrice = Number(price || 0);
+    if (!name || cleanPrice <= 0) return;
+    const map = loadPriceCatalog();
+    map[name.trim().toLowerCase()] = cleanPrice;
+    localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify(map));
+}
+
+function getItemEstimatedPrice(name) {
+    if (!name) return 0;
+    const map = loadPriceCatalog();
+    return Number(map[name.trim().toLowerCase()] || 0);
+}
+
 export async function initInventory() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -34,9 +50,19 @@ export async function initInventory() {
     currentAuthorName = meta.nickname || meta.full_name?.split(' ')[0] || user.email.split('@')[0];
 
     activeHousehold = await getActiveHousehold(user.id);
+    populateCheckoutSourceSelect();
 
     bindInventoryEvents();
     await loadInventory();
+}
+
+function populateCheckoutSourceSelect() {
+    const sel = document.getElementById('checkoutSourceSelect');
+    if (!sel) return;
+    sel.innerHTML = `<option value="personal">👤 Cargar a Flujo Personal</option>`;
+    if (activeHousehold) {
+        sel.innerHTML += `<option value="household" selected>🏠 Cargar a Hogar (${escapeHTML(activeHousehold.name)})</option>`;
+    }
 }
 
 async function loadInventory() {
@@ -67,6 +93,15 @@ function getDaysUntilExpiry(expiryStr) {
     return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
 }
 
+function computeShoppingEstimate(shoppingItems) {
+    return shoppingItems.reduce((acc, item) => {
+        const unitPrice = getItemEstimatedPrice(item.name);
+        if (unitPrice <= 0) return acc;
+        const needed = Math.max(1, Math.ceil(Number(item.min_stock) - Number(item.quantity) + 1));
+        return acc + (unitPrice * needed);
+    }, 0);
+}
+
 function renderInventoryAndKPIs() {
     const lowStock = allItems.filter(i => Number(i.quantity) <= Number(i.min_stock));
     const expiring = allItems.filter(i => {
@@ -88,6 +123,7 @@ function renderShoppingSidebar(shoppingItems) {
     const sideContainer = document.getElementById('shoppingListSideContainer');
     const badge = document.getElementById('shoppingSideBadge');
     const checkoutBox = document.getElementById('shoppingCheckoutBox');
+    const estTotalEl = document.getElementById('shoppingEstimatedTotal');
 
     if (badge) badge.textContent = `${shoppingItems.length} ítems`;
     if (!sideContainer) return;
@@ -98,14 +134,24 @@ function renderShoppingSidebar(shoppingItems) {
         return;
     }
 
-    if (checkoutBox) checkoutBox.style.display = 'block';
+    if (checkoutBox) checkoutBox.style.display = 'flex';
+    const estTotal = computeShoppingEstimate(shoppingItems);
+    if (estTotalEl) {
+        estTotalEl.textContent = estTotal > 0 ? `~${formatCOP(estTotal)}` : 'Sin precios ref.';
+    }
 
-    sideContainer.innerHTML = shoppingItems.map(item => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: var(--bg-color); border-radius: 10px; border: 1px solid var(--border-card);">
-            <span style="font-size: 0.83rem; font-weight: 600; color: var(--text-main);">${escapeHTML(item.name)}</span>
-            <span style="font-size: 0.75rem; color: var(--warning-color, #f59e0b);">Actual: ${Number(item.quantity)} ${escapeHTML(item.unit)}</span>
-        </div>
-    `).join('');
+    sideContainer.innerHTML = shoppingItems.map(item => {
+        const price = getItemEstimatedPrice(item.name);
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 10px; background: var(--bg-color); border-radius: 10px; border: 1px solid var(--border-card);">
+                <div style="overflow: hidden;">
+                    <div style="font-size: 0.83rem; font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(item.name)}</div>
+                    ${price > 0 ? `<div style="font-size: 0.7rem; color: var(--primary-neon);">Ref: ${formatCOP(price)} / ${escapeHTML(item.unit)}</div>` : ''}
+                </div>
+                <span style="font-size: 0.74rem; color: var(--warning-color, #f59e0b); white-space: nowrap;">Quedan: ${Number(item.quantity)} ${escapeHTML(item.unit)}</span>
+            </div>
+        `;
+    }).join('');
 }
 
 function renderMainInventoryList() {
@@ -139,11 +185,17 @@ function renderMainInventoryList() {
     filtered.forEach(item => {
         const isLow = Number(item.quantity) <= Number(item.min_stock);
         const daysLeft = getDaysUntilExpiry(item.expiry_date);
+        const unitPrice = getItemEstimatedPrice(item.name);
+
         let expiryBadge = '';
         if (daysLeft !== null) {
             const expColor = daysLeft <= 3 ? 'var(--danger-color, #ef4444)' : daysLeft <= 7 ? 'var(--warning-color, #f59e0b)' : 'var(--text-muted)';
             expiryBadge = `<span style="font-size: 0.74rem; color: ${expColor}; margin-left: 8px;">⏳ ${daysLeft < 0 ? 'Vencido' : `Vence en ${daysLeft}d`}</span>`;
         }
+
+        const priceBadge = unitPrice > 0
+            ? `<span style="font-size: 0.72rem; color: var(--primary-neon); margin-left: 8px;">💵 ~${formatCOP(unitPrice)}</span>`
+            : '';
 
         const row = document.createElement('div');
         row.className = 'setting-row';
@@ -154,6 +206,7 @@ function renderMainInventoryList() {
                 <h4 style="font-size: 0.96rem; color: var(--text-main); margin-bottom: 2px;">
                     ${escapeHTML(item.name)}
                     ${item.household_id ? '<span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 6px; background: var(--bg-color); color: var(--primary-neon); margin-left: 6px;">🏠 Hogar</span>' : ''}
+                    ${priceBadge}
                 </h4>
                 <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0;">
                     ${escapeHTML(item.category)} • Mínimo: ${Number(item.min_stock)} ${escapeHTML(item.unit)}
@@ -171,7 +224,7 @@ function renderMainInventoryList() {
         `;
 
         const updateQty = async (newQty) => {
-            const cleanQty = Math.max(0, newQty);
+            const cleanQty = Math.max(0, Number(newQty.toFixed(2)));
             const autoShop = cleanQty <= Number(item.min_stock);
             const { error } = await supabase
                 .from('inventory_items')
@@ -210,6 +263,7 @@ function bindInventoryEvents() {
             const quantity = Number(document.getElementById('invQtyInput')?.value || 0);
             const minStock = Number(document.getElementById('invMinStockInput')?.value || 1);
             const expiry = document.getElementById('invExpiryInput')?.value || null;
+            const estPrice = Number(document.getElementById('invEstPriceInput')?.value || 0);
             const manualShop = document.getElementById('invShoppingCheck')?.checked;
 
             if (!name) return;
@@ -229,6 +283,7 @@ function bindInventoryEvents() {
             if (error) {
                 showToast('Error guardando producto: ' + error.message, 'error');
             } else {
+                if (estPrice > 0) saveItemPrice(name, estPrice);
                 form.reset();
                 showToast('Producto sincronizado en la despensa', 'success');
                 await loadInventory();
@@ -236,41 +291,98 @@ function bindInventoryEvents() {
         });
     }
 
-    // Puente Despensa -> Finanzas (Hogar o Personal)
+    // Puente Despensa -> Finanzas con selector Personal / Hogar y nature: 'operativo'
     const btnCheckout = document.getElementById('btnCheckoutToFinance');
     if (btnCheckout) {
         btnCheckout.addEventListener('click', async () => {
             const shopping = allItems.filter(i => i.in_shopping_list || Number(i.quantity) <= Number(i.min_stock));
             if (shopping.length === 0) return;
 
-            const totalCost = Number(document.getElementById('checkoutTotalInput')?.value || 0);
+            const inputCost = Number(document.getElementById('checkoutTotalInput')?.value || 0);
+            const estCost = computeShoppingEstimate(shopping);
+            const finalCost = inputCost > 0 ? inputCost : estCost;
+            const srcVal = document.getElementById('checkoutSourceSelect')?.value || 'personal';
+            const targetHouseholdId = (srcVal === 'household' && activeHousehold) ? activeHousehold.id : null;
 
-            for (const item of shopping) {
-                const restockedQty = Math.max(Number(item.quantity) + 1, Number(item.min_stock) + 2);
-                await supabase
-                    .from('inventory_items')
-                    .update({ quantity: restockedQty, in_shopping_list: false })
-                    .eq('id', item.id);
+            btnCheckout.disabled = true;
+            try {
+                await Promise.all(shopping.map(item => {
+                    const restockedQty = Math.max(Number(item.quantity) + 1, Number(item.min_stock) + 2);
+                    return supabase
+                        .from('inventory_items')
+                        .update({ quantity: restockedQty, in_shopping_list: false })
+                        .eq('id', item.id);
+                }));
+
+                if (finalCost > 0) {
+                    const namesPreview = shopping.slice(0, 3).map(i => i.name).join(', ');
+                    const more = shopping.length > 3 ? ` (+${shopping.length - 3})` : '';
+                    const { error: finErr } = await supabase.from('finance_transactions').insert({
+                        user_id: currentUser.id,
+                        household_id: targetHouseholdId,
+                        author_name: currentAuthorName,
+                        title: `Mercado Despensa: ${namesPreview}${more}`,
+                        amount: finalCost,
+                        type: 'gasto',
+                        nature: 'operativo',
+                        category: 'Alimentación',
+                        is_recurring: false,
+                        transaction_date: getTodayISO()
+                    });
+                    if (finErr) throw finErr;
+                }
+
+                document.getElementById('checkoutTotalInput').value = '';
+                const srcLabel = targetHouseholdId ? 'Hogar Familiar' : 'Flujo Personal';
+                showToast(
+                    finalCost > 0
+                        ? `Despensa abastecida y gasto de ${formatCOP(finalCost)} cargado a ${srcLabel}.`
+                        : 'Despensa abastecida correctamente.',
+                    'success'
+                );
+                await loadInventory();
+            } catch (err) {
+                showToast('Error al abastecer despensa: ' + err.message, 'error');
+            } finally {
+                btnCheckout.disabled = false;
             }
+        });
+    }
 
-            if (totalCost > 0) {
-                const { error: finErr } = await supabase.from('finance_transactions').insert({
+    // Puente Despensa -> Centro de Agendas
+    const btnSchedule = document.getElementById('btnScheduleShoppingAgenda');
+    if (btnSchedule) {
+        btnSchedule.addEventListener('click', async () => {
+            const shopping = allItems.filter(i => i.in_shopping_list || Number(i.quantity) <= Number(i.min_stock));
+            if (shopping.length === 0) return;
+
+            const srcVal = document.getElementById('checkoutSourceSelect')?.value || 'personal';
+            const targetHouseholdId = (srcVal === 'household' && activeHousehold) ? activeHousehold.id : null;
+            const estCost = computeShoppingEstimate(shopping);
+            const itemsSummary = shopping.slice(0, 5).map(i => i.name).join(', ') + (shopping.length > 5 ? ` (+${shopping.length - 5} más)` : '');
+
+            btnSchedule.disabled = true;
+            try {
+                await createAgendaItem({
                     user_id: currentUser.id,
-                    household_id: activeHousehold ? activeHousehold.id : null,
+                    household_id: targetHouseholdId,
                     author_name: currentAuthorName,
-                    title: `Compra de Despensa (${shopping.length} productos)`,
-                    amount: totalCost,
-                    type: 'gasto',
-                    category: 'Alimentación',
-                    is_recurring: false,
-                    transaction_date: new Date().toISOString().slice(0, 10)
+                    assigned_to: targetHouseholdId ? 'Todos' : 'Personal',
+                    title: `🛒 Comprar Despensa (${shopping.length} ítems)`,
+                    description: `Lista: ${itemsSummary}`,
+                    item_type: 'tarea',
+                    priority: 'alta',
+                    due_date: getTodayISO(),
+                    status: 'pendiente',
+                    color_tag: '#f59e0b',
+                    amount: estCost > 0 ? estCost : null
                 });
-                if (finErr) console.error('Error registrando compra en finanzas:', finErr);
+                showToast('Compra de despensa programada en tu Centro de Agendas.', 'success');
+            } catch (err) {
+                showToast('Error al agendar compra: ' + err.message, 'error');
+            } finally {
+                btnSchedule.disabled = false;
             }
-
-            document.getElementById('checkoutTotalInput').value = '';
-            showToast('Despensa abastecida y gasto registrado en Finanzas', 'success');
-            await loadInventory();
         });
     }
 
@@ -280,8 +392,12 @@ function bindInventoryEvents() {
             showToast('La lista de compras está vacía', 'info');
             return;
         }
-        const text = `🛒 Lista de Compras (${activeHousehold?.name || 'NGN'}):\n` +
-            shopping.map(i => `- ${i.name} (Actual: ${i.quantity} ${i.unit})`).join('\n');
+        const estCost = computeShoppingEstimate(shopping);
+        const header = `🛒 Lista de Compras (${activeHousehold?.name || 'NGN'})${estCost > 0 ? ` — Est. ${formatCOP(estCost)}` : ''}:\n`;
+        const text = header + shopping.map(i => {
+            const p = getItemEstimatedPrice(i.name);
+            return `- ${i.name} (Quedan: ${i.quantity} ${i.unit}${p > 0 ? ` • ~${formatCOP(p)}` : ''})`;
+        }).join('\n');
         navigator.clipboard.writeText(text);
         showToast('Lista copiada al portapapeles', 'success');
     });

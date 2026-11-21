@@ -20,6 +20,16 @@
       <span class="pulse-dot"></span>
       <span id="habitsTodayLabel" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">Jornada Activa</span>
     </div>
+    <!-- Indicador de Fecha Hoy + Acceso a Agendas -->
+    <div style="display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;">
+      <button type="button" class="btn-outline encrypted-route" data-target="/views/agenda.html" style="padding: 0.6rem 1rem; background: var(--panel-bg); font-size: 0.82rem; font-weight: 700;">
+        📅 Ver Agenda
+      </button>
+      <div style="background: var(--panel-bg); padding: 0.65rem 1.2rem; border-radius: 14px; border: 1px solid var(--border-card); box-shadow: var(--shadow-base); display: flex; align-items: center; gap: 8px;">
+        <span class="pulse-dot"></span>
+        <span id="habitsTodayLabel" style="font-size: 0.85rem; font-weight: 700; color: var(--text-main);">Jornada Activa</span>
+      </div>
+    </div>
   </div>
 
   <!-- Fila 1: 4 Tarjetas KPI de Rendimiento Conductual -->
@@ -94,6 +104,9 @@
           </button>
           <button type="button" id="btnPomoReset" class="btn-outline" style="padding: 0.65rem 1rem;">
             Reiniciar
+          </button>
+          <button type="button" id="btnPomoScheduleAgenda" class="btn-outline" style="width: 100%; justify-content: center; margin-top: 0.65rem; padding: 0.48rem; font-size: 0.76rem; border-color: #0ea5e9; color: #0ea5e9; font-weight: 600;">
+          📅 Agendar Bloque de Enfoque Hoy
           </button>
         </div>
       </div>
